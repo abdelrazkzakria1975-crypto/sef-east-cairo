@@ -553,6 +553,11 @@
                         <i class="fas fa-print"></i>
                         <span>طباعة الكشف</span>
                     </button>
+
+                    <button type="button" onclick="confirmClearAllEvaluations()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>حذف التقييمات التجريبية</span>
+                    </button>
                 </div>
             </div>
 
@@ -714,1011 +719,265 @@
         // ==========================================
         const STAGE_KEY = 'local';
         const ADMIN_PIN_CODE = '1324';
-        const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw7d4B7CeL3HSxqPm1nMwtO9YXE1jiiW5KFs27a6-lIX9sk8szkz5OeAsCwdxTm1Skt/exec';
+        const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwfWjvxSA8NnepvStphVV-xbmlHBqBjuya-rmuKM-CZ0KRhTJ6TftiLEftHTjoMsMOX/exec';
         let adminUnlocked = false;
         let pendingAdminAction = null;
 
         const LS_KEYS = {
-            PROJECTS: 'isef_east_cairo_projects_75_v3',
-            EVALUATIONS: 'isef_east_cairo_evals_v3',
-            JUDGE: 'isef_east_cairo_active_judge_v3',
-            LOGO: 'isef_east_cairo_logo_v3',
-            SHEETS_URL: 'isef_east_cairo_sheets_webhook_v3'
+            PROJECTS: 'isef_east_cairo_projects_75_v4',
+            EVALUATIONS: 'isef_east_cairo_evals_v4',
+            JUDGE: 'isef_east_cairo_active_judge_v4',
+            LOGO: 'isef_east_cairo_logo_v4',
+            SHEETS_URL: 'isef_east_cairo_sheets_webhook_v4'
         };
 
         let state = {
+            currentView: 'judge',
+            activeJudge: null,
+            selectedProjectCode: null,
             projects: {
-                local: [...DEFAULT_LOCAL_PROJECTS]
+                local: [...DEFAULT_LOCAL_PROJECTS],
+                sector: [...DEFAULT_SECTOR_PROJECTS]
             },
             evaluations: [],
-            currentJudge: null,
-            selectedProjectCode: null,
-            adminStage: STAGE_KEY,
-            customLogo: null,
-            sheetsWebhookUrl: DEFAULT_SHEETS_WEBHOOK_URL
+            db: null,
+            auth: null,
+            user: null,
+            appId: typeof __app_id !== 'undefined' ? __app_id : 'isef-east-cairo-2026',
+            isCloudConnected: false
         };
 
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'isef-east-cairo-2026';
-
         // ==========================================
-        // 3. INITIALIZATION & CLOUD SYNC (FIREBASE)
+        // 3. LOCAL STORAGE & FIREBASE INITIALIZATION
         // ==========================================
-        async function initApp() {
-            loadFromLocalStorage();
-            updateCountsUI();
-            populateCategoryDropdowns();
-
-            if (state.currentJudge && state.currentJudge.name && state.currentJudge.phone && state.currentJudge.specialty) {
-                enterJudgeWorkspace();
-            }
-
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-
-                    onAuthStateChanged(auth, (user) => {
-                        currentUser = user;
-                        if (user) {
-                            setupFirestoreListeners();
-                            updateSyncBadge(true);
-                        }
-                    });
-                } else {
-                    updateSyncBadge(false);
-                }
-            } catch (err) {
-                console.warn("Firebase offline mode active:", err);
-                updateSyncBadge(false);
-            }
-        }
-
-        function updateSyncBadge(isCloud) {
-            const badge = document.getElementById('sync-badge');
-            if (!badge) return;
-            if (isCloud) {
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> مزامنة سحابية`;
-            } else {
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> حفظ محلي فوري`;
-            }
-        }
-
-        function setupFirestoreListeners() {
-            if (!db || !currentUser) return;
-
-            const evalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'evaluations');
-            onSnapshot(evalsCol, (snapshot) => {
-                const cloudEvals = [];
-                snapshot.forEach(docSnap => {
-                    cloudEvals.push(docSnap.data());
-                });
-                if (cloudEvals.length > 0) {
-                    const mergedMap = new Map();
-                    state.evaluations.forEach(e => mergedMap.set(e.id, e));
-                    cloudEvals.forEach(e => mergedMap.set(e.id, e));
-                    state.evaluations = Array.from(mergedMap.values());
-                    saveToLocalStorage();
-                    refreshAllViews();
-                }
-            }, (error) => {
-                console.error("Firestore evaluations sync error:", error);
-            });
-
-            const projectsDoc = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'projects_sheet');
-            onSnapshot(projectsDoc, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (Array.isArray(data.local) && data.local.length > 0) {
-                        state.projects = { local: data.local };
-                        saveToLocalStorage();
-                        updateCountsUI();
-                        populateCategoryDropdowns();
-                        refreshAllViews();
-                    }
-                }
-            }, (error) => {
-                console.error("Firestore projects sync error:", error);
-            });
-
-            const logoDoc = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sector_logo');
-            onSnapshot(logoDoc, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.logoDataUrl) {
-                        state.customLogo = data.logoDataUrl;
-                        applyLogoToUI(data.logoDataUrl);
-                        try { localStorage.setItem(LS_KEYS.LOGO, data.logoDataUrl); } catch (e) {}
-                    }
-                }
-            }, (error) => {
-                console.error("Firestore logo sync error:", error);
-            });
-        }
-
         function loadFromLocalStorage() {
             try {
                 const savedProjects = localStorage.getItem(LS_KEYS.PROJECTS);
                 if (savedProjects) {
                     const parsed = JSON.parse(savedProjects);
-                    if (Array.isArray(parsed.local) && parsed.local.length > 0) {
-                        state.projects = { local: parsed.local };
+                    if (parsed && parsed.local && parsed.local.length >= 75) {
+                        state.projects.local = parsed.local;
+                    }
+                    if (parsed && parsed.sector) {
+                        state.projects.sector = parsed.sector;
                     }
                 }
                 const savedEvals = localStorage.getItem(LS_KEYS.EVALUATIONS);
                 if (savedEvals) {
-                    state.evaluations = JSON.parse(savedEvals);
+                    state.evaluations = JSON.parse(savedEvals) || [];
                 }
                 const savedJudge = localStorage.getItem(LS_KEYS.JUDGE);
                 if (savedJudge) {
-                    state.currentJudge = JSON.parse(savedJudge);
+                    state.activeJudge = JSON.parse(savedJudge);
                 }
                 const savedLogo = localStorage.getItem(LS_KEYS.LOGO);
                 if (savedLogo) {
-                    state.customLogo = savedLogo;
-                    applyLogoToUI(savedLogo);
+                    applyCustomLogo(savedLogo);
                 }
-                const savedWebhook = localStorage.getItem(LS_KEYS.SHEETS_URL);
-                if (savedWebhook) {
-                    state.sheetsWebhookUrl = savedWebhook;
-                } else {
-                    state.sheetsWebhookUrl = DEFAULT_SHEETS_WEBHOOK_URL;
-                }
-            } catch (e) {
-                console.error("Error reading LocalStorage:", e);
+            } catch (err) {
+                console.error("LocalStorage load error:", err);
             }
         }
 
         function saveToLocalStorage() {
             try {
-                localStorage.setItem(LS_KEYS.PROJECTS, JSON.stringify({ local: state.projects.local }));
+                localStorage.setItem(LS_KEYS.PROJECTS, JSON.stringify(state.projects));
                 localStorage.setItem(LS_KEYS.EVALUATIONS, JSON.stringify(state.evaluations));
-                if (state.currentJudge) {
-                    localStorage.setItem(LS_KEYS.JUDGE, JSON.stringify(state.currentJudge));
+                if (state.activeJudge) {
+                    localStorage.setItem(LS_KEYS.JUDGE, JSON.stringify(state.activeJudge));
                 } else {
                     localStorage.removeItem(LS_KEYS.JUDGE);
                 }
-            } catch (e) {
-                console.error("Error saving to LocalStorage:", e);
+            } catch (err) {
+                console.error("LocalStorage save error:", err);
             }
         }
 
-        async function saveEvaluationToCloud(evalObj) {
-            if (!db || !currentUser) return;
-            try {
-                const evalRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', evalObj.id);
-                await setDoc(evalRef, evalObj);
-            } catch (e) {
-                console.error("Cloud save failed, kept in LocalStorage:", e);
-            }
-        }
+        function applyCustomLogo(dataUrl) {
+            const headerImg = document.getElementById('custom-sector-logo-img');
+            const headerSvg = document.getElementById('default-sector-svg');
+            const loginImg = document.getElementById('login-sector-logo-img');
+            const loginSvg = document.getElementById('login-sector-svg');
 
-        async function saveProjectsToCloud() {
-            if (!db || !currentUser) return;
-            try {
-                const projectsRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'projects_sheet');
-                await setDoc(projectsRef, {
-                    local: state.projects.local,
-                    updatedAt: new Date().toISOString()
-                });
-            } catch (e) {
-                console.error("Cloud projects sync failed:", e);
+            if (headerImg && headerSvg) {
+                headerImg.src = dataUrl;
+                headerImg.classList.remove('hidden');
+                headerSvg.classList.add('hidden');
             }
-        }
-
-        // ==========================================
-        // LOGO UPLOAD, DISPLAY & SYNC
-        // ==========================================
-        function applyLogoToUI(dataUrl) {
-            const imgEl = document.getElementById('custom-sector-logo-img');
-            const loginImgEl = document.getElementById('login-sector-logo-img');
-            const svgEl = document.getElementById('default-sector-svg');
-            const loginSvgEl = document.getElementById('login-sector-svg');
-            if (dataUrl) {
-                if (imgEl) { imgEl.src = dataUrl; imgEl.classList.remove('hidden'); }
-                if (loginImgEl) { loginImgEl.src = dataUrl; loginImgEl.classList.remove('hidden'); }
-                if (svgEl) svgEl.classList.add('hidden');
-                if (loginSvgEl) loginSvgEl.classList.add('hidden');
+            if (loginImg && loginSvg) {
+                loginImg.src = dataUrl;
+                loginImg.classList.remove('hidden');
+                loginSvg.classList.add('hidden');
             }
         }
 
         window.handleLogoUpload = function(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
-                img.onload = async function() {
+                img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const maxDim = 300;
+                    const maxSize = 260;
                     let w = img.width;
                     let h = img.height;
-                    if (w > maxDim || h > maxDim) {
-                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
-                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    if (w > h) {
+                        if (w > maxSize) { h *= maxSize / w; w = maxSize; }
+                    } else {
+                        if (h > maxSize) { w *= maxSize / h; h = maxSize; }
                     }
                     canvas.width = w;
                     canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
-
                     const compressedDataUrl = canvas.toDataURL('image/png', 0.9);
-                    state.customLogo = compressedDataUrl;
-                    applyLogoToUI(compressedDataUrl);
-
-                    try {
-                        localStorage.setItem(LS_KEYS.LOGO, compressedDataUrl);
-                    } catch (err) {
-                        console.warn("LocalStorage logo save warning:", err);
-                    }
-
-                    if (db && currentUser) {
-                        try {
-                            const logoRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sector_logo');
-                            await setDoc(logoRef, {
-                                logoDataUrl: compressedDataUrl,
-                                updatedAt: new Date().toISOString()
-                            });
-                        } catch (err) {
-                            console.warn("Cloud logo sync warning:", err);
-                        }
-                    }
-                    showToast("تم تحديث وحفظ شعار معرض قطاع شرق القاهرة بنجاح", "success");
+                    localStorage.setItem(LS_KEYS.LOGO, compressedDataUrl);
+                    applyCustomLogo(compressedDataUrl);
+                    showToast('تم تحديث شعار معرض قطاع شرق القاهرة بنجاح', 'success');
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
-            event.target.value = "";
+            event.target.value = '';
         };
 
-        // ==========================================
-        // 4. JUDGE LOGIN & NAVIGATION (NAME, SPECIALTY, MOBILE ONLY)
-        // ==========================================
-        window.handleJudgeLogin = function(e) {
-            if (e && e.preventDefault) e.preventDefault();
+        async function initFirebaseSync() {
+            try {
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    updateSyncBadge(false);
+                    return;
+                }
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                state.auth = getAuth(app);
+                state.db = getFirestore(app);
 
-            const nameInput = document.getElementById('judge-name');
-            const specialtyInput = document.getElementById('judge-specialty');
-            const phoneInput = document.getElementById('judge-phone');
-
-            const name = nameInput ? nameInput.value.trim() : '';
-            const specialty = specialtyInput ? specialtyInput.value.trim() : '';
-            const phone = phoneInput ? phoneInput.value.trim() : '';
-
-            if (!name || !specialty || !phone) {
-                showToast("يرجى إدخال اسم المحكم، التخصص، ورقم الموبايل أولاً", "error");
-                return;
-            }
-
-            const normalizedId = `${name.replace(/\s+/g, '_').toLowerCase()}_${phone.replace(/\D+/g, '') || 'judge'}`;
-
-            state.currentJudge = {
-                id: normalizedId,
-                name,
-                specialty,
-                phone,
-                stage: STAGE_KEY
-            };
-            state.selectedProjectCode = null;
-            saveToLocalStorage();
-            enterJudgeWorkspace();
-            showToast(`أهلاً بك ${name} — بدء تحكيم 75 مشروع`, "success");
-        };
-
-        function enterJudgeWorkspace() {
-            const j = state.currentJudge;
-            if (!j || !j.name || !j.phone || !j.specialty) return;
-
-            j.stage = STAGE_KEY;
-
-            const loginScreen = document.getElementById('judge-login-screen');
-            const workspaceScreen = document.getElementById('judge-workspace');
-            if (loginScreen) loginScreen.classList.add('hidden');
-            if (workspaceScreen) workspaceScreen.classList.remove('hidden');
-
-            const pill = document.getElementById('active-judge-pill');
-            if (pill) {
-                pill.classList.remove('hidden');
-                pill.classList.add('flex');
-            }
-            const headerName = document.getElementById('header-judge-name');
-            if (headerName) headerName.textContent = j.name;
-
-            const wsName = document.getElementById('ws-judge-name');
-            const wsMeta = document.getElementById('ws-judge-meta');
-            if (wsName) wsName.textContent = j.name;
-            if (wsMeta) wsMeta.textContent = `التخصص: ${j.specialty} — موبايل: ${j.phone}`;
-
-            populateCategoryDropdowns();
-            updateJudgeEvaluatedCounter();
-            filterProjectsList();
-
-            const noProj = document.getElementById('no-project-selected');
-            const evalForm = document.getElementById('evaluation-form-container');
-            if (noProj) noProj.classList.remove('hidden');
-            if (evalForm) evalForm.classList.add('hidden');
-        }
-
-        window.logoutJudge = function() {
-            state.currentJudge = null;
-            state.selectedProjectCode = null;
-            saveToLocalStorage();
-            document.getElementById('judge-workspace').classList.add('hidden');
-            document.getElementById('judge-login-screen').classList.remove('hidden');
-            document.getElementById('active-judge-pill').classList.add('hidden');
-            document.getElementById('active-judge-pill').classList.remove('flex');
-        };
-
-        window.switchMainView = function(view) {
-            if (view === 'admin' && !adminUnlocked) {
-                requireAdminPin(() => switchMainView('admin'));
-                return;
-            }
-
-            const judgeView = document.getElementById('view-judge');
-            const adminView = document.getElementById('view-admin');
-            const navJudge = document.getElementById('nav-judge');
-            const navAdmin = document.getElementById('nav-admin');
-
-            if (view === 'judge') {
-                judgeView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow";
-                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10";
-                if (state.currentJudge) {
-                    enterJudgeWorkspace();
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(state.auth, __initial_auth_token);
                 } else {
-                    document.getElementById('judge-login-screen').classList.remove('hidden');
-                    document.getElementById('judge-workspace').classList.add('hidden');
+                    await signInAnonymously(state.auth);
                 }
-            } else {
-                judgeView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow";
-                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10";
-                renderAdminDashboard();
-            }
-        };
 
-        window.requireAdminPin = function(callback) {
-            if (adminUnlocked) {
-                if (typeof callback === 'function') callback();
-                return;
-            }
-            pendingAdminAction = callback;
-            document.getElementById('modal-title').textContent = "منطقة محمية — دخول اللجنة المنظمة";
-            document.getElementById('modal-body').innerHTML = `
-                <form onsubmit="verifyAdminPin(event)" class="space-y-4 py-2 text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-extrabold text-slate-800 text-base">يرجى إدخال الرقم السري للإدارة</h4>
-                        <p class="text-xs text-slate-500 mt-1">هذا القسم مخصص للجنة المنظمة لمعرض قطاع شرق القاهرة ISEF فقط</p>
-                    </div>
-                    <div class="max-w-xs mx-auto">
-                        <input type="password" id="admin-pin-input" inputmode="numeric" maxlength="10" required autofocus
-                            placeholder="••••"
-                            class="w-full text-center tracking-[0.5em] text-2xl font-black py-3 px-4 bg-slate-50 border-2 border-slate-300 rounded-xl focus:border-isef-600 focus:ring-2 focus:ring-isef-500 outline-none" dir="ltr">
-                        <p id="admin-pin-error" class="hidden text-xs font-bold text-rose-600 mt-2">
-                            <i class="fas fa-exclamation-triangle"></i> الرقم السري غير صحيح، حاول مرة أخرى
-                        </p>
-                    </div>
-                    <div class="pt-2 flex justify-center gap-2">
-                        <button type="submit" class="px-6 py-2.5 bg-isef-700 hover:bg-isef-800 text-white font-bold rounded-xl text-sm shadow transition cursor-pointer">
-                            <i class="fas fa-unlock-alt ml-1"></i> فتح الإدارة
-                        </button>
-                    </div>
-                </form>
-            `;
-            const modal = document.getElementById('custom-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => {
-                const inp = document.getElementById('admin-pin-input');
-                if (inp) inp.focus();
-            }, 100);
-        };
-
-        window.verifyAdminPin = function(e) {
-            if (e && e.preventDefault) e.preventDefault();
-            const inp = document.getElementById('admin-pin-input');
-            const errEl = document.getElementById('admin-pin-error');
-            if (!inp) return;
-
-            if (inp.value.trim() === ADMIN_PIN_CODE) {
-                adminUnlocked = true;
-                closeModal();
-                showToast("تم التحقق — أهلاً بك في لوحة إدارة المعرض", "success");
-                if (typeof pendingAdminAction === 'function') {
-                    const action = pendingAdminAction;
-                    pendingAdminAction = null;
-                    action();
-                }
-            } else {
-                if (errEl) errEl.classList.remove('hidden');
-                inp.value = '';
-                inp.focus();
-            }
-        };
-
-        function updateJudgeEvaluatedCounter() {
-            if (!state.currentJudge) return;
-            const count = state.evaluations.filter(ev => ev.judgeId === state.currentJudge.id).length;
-            const el = document.getElementById('ws-evaluated-count');
-            if (el) el.textContent = count;
-        }
-
-        // ==========================================
-        // 5. PROJECT SEARCH, SELECTION & SCORING (75 PROJECTS)
-        // ==========================================
-        function populateCategoryDropdowns() {
-            const allProjects = state.projects.local || [];
-            const categories = [...new Set(allProjects.map(p => p.category).filter(Boolean))].sort();
-
-            const judgeSelect = document.getElementById('category-filter-select');
-            const adminSelect = document.getElementById('admin-category-filter');
-
-            const optionsHtml = `<option value="ALL">جميع الفئات العلمية (${categories.length})</option>` +
-                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-
-            if (judgeSelect) judgeSelect.innerHTML = optionsHtml;
-            if (adminSelect) adminSelect.innerHTML = optionsHtml;
-        }
-
-        window.filterProjectsList = function() {
-            const projectsList = state.projects.local || [];
-            const searchInput = document.getElementById('project-search-input');
-            const catSelect = document.getElementById('category-filter-select');
-            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
-            const selectedCat = catSelect ? catSelect.value : 'ALL';
-
-            const totalEl = document.getElementById('stage-projects-total');
-            if (totalEl) totalEl.textContent = `${projectsList.length} مشروع`;
-
-            const filtered = projectsList.filter(p => {
-                const matchesCat = selectedCat === 'ALL' || p.category === selectedCat;
-                const matchesQuery = !query ||
-                    p.code.toLowerCase().includes(query) ||
-                    p.title.toLowerCase().includes(query) ||
-                    p.students.toLowerCase().includes(query) ||
-                    p.school.toLowerCase().includes(query) ||
-                    (p.administration && p.administration.toLowerCase().includes(query)) ||
-                    p.category.toLowerCase().includes(query);
-                return matchesCat && matchesQuery;
-            });
-
-            const exactMatch = projectsList.find(p => p.code.toLowerCase() === query);
-            if (exactMatch && state.selectedProjectCode !== exactMatch.code) {
-                selectProjectForJudging(exactMatch.code);
-            }
-
-            const container = document.getElementById('projects-quick-list');
-            if (!container) return;
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">لا توجد مشاريع مطابقة للبحث</div>`;
-                return;
-            }
-
-            container.innerHTML = filtered.map(p => {
-                const existingEval = state.currentJudge
-                    ? state.evaluations.find(ev => ev.judgeId === state.currentJudge.id && ev.projectCode === p.code)
-                    : null;
-                const isSelected = state.selectedProjectCode === p.code;
-
-                return `
-                    <button type="button" onclick="selectProjectForJudging('${p.code}')"
-                        class="w-full text-right p-3 rounded-xl border transition flex flex-col gap-1.5 cursor-pointer ${
-                            isSelected
-                                ? 'bg-isef-50 border-isef-500 ring-1 ring-isef-500 shadow-sm'
-                                : 'bg-white border-slate-200 hover:border-isef-300 hover:bg-slate-50'
-                        }">
-                        <div class="flex items-center justify-between gap-2 w-full">
-                            <span class="font-mono text-xs font-extrabold px-2 py-0.5 rounded ${
-                                isSelected ? 'bg-isef-700 text-white' : 'bg-slate-800 text-amber-300'
-                            }">${p.code}</span>
-                            ${
-                                existingEval
-                                    ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <i class="fas fa-check-circle"></i> ${existingEval.totalScore}/100
-                                       </span>`
-                                    : `<span class="text-[11px] text-slate-400 font-semibold">لم يُقيّم</span>`
-                            }
-                        </div>
-                        <div class="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">${p.title}</div>
-                        <div class="text-[11px] text-slate-500 truncate">${p.students}</div>
-                    </button>
-                `;
-            }).join('');
-        };
-
-        window.selectProjectForJudging = function(projectCode) {
-            if (!state.currentJudge) {
-                showToast("يرجى إدخال بيانات المحكم أولاً", "error");
-                return;
-            }
-            const project = (state.projects.local || []).find(p => p.code === projectCode);
-            if (!project) return;
-
-            state.selectedProjectCode = projectCode;
-            filterProjectsList();
-
-            document.getElementById('no-project-selected').classList.add('hidden');
-            document.getElementById('evaluation-form-container').classList.remove('hidden');
-
-            document.getElementById('card-project-code').textContent = project.code;
-            document.getElementById('card-project-category').textContent = project.category;
-            document.getElementById('card-project-title').textContent = project.title;
-            document.getElementById('card-project-students').textContent = project.students;
-            document.getElementById('card-project-school').textContent = project.administration
-                ? `${project.school} — ${project.administration}`
-                : project.school;
-
-            const existingEval = state.evaluations.find(
-                ev => ev.judgeId === state.currentJudge.id && ev.projectCode === projectCode
-            );
-
-            const statusBadge = document.getElementById('card-eval-status');
-            const submitText = document.getElementById('submit-eval-text');
-
-            if (existingEval) {
-                statusBadge.textContent = `تم التقييم مسبقاً (${existingEval.totalScore}/100) — وضع التعديل`;
-                statusBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30";
-                submitText.textContent = "تحديث الدرجة المحفوظة";
-                setRubricValues(existingEval.scores, existingEval.notes || '');
-            } else {
-                statusBadge.textContent = "تقييم جديد";
-                statusBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30";
-                submitText.textContent = "اعتماد وحفظ التقييم";
-                resetRubricForm();
-            }
-        };
-
-        function setRubricValues(scores, notes) {
-            ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(key => {
-                const val = scores[key] || 0;
-                document.getElementById(`score-${key}`).value = val;
-                document.getElementById(`range-${key}`).value = val;
-            });
-            document.getElementById('judge-notes').value = notes;
-            recalculateTotalScore();
-        }
-
-        window.resetRubricForm = function() {
-            setRubricValues({ c1: 0, c2: 0, c3: 0, c4: 0, c5: 0 }, '');
-        };
-
-        window.syncScoreRange = function(criterion, value) {
-            document.getElementById(`score-${criterion}`).value = value;
-            recalculateTotalScore();
-        };
-
-        window.syncScoreInput = function(criterion, value) {
-            const maxMap = { c1: 10, c2: 15, c3: 20, c4: 20, c5: 35 };
-            let num = parseFloat(value);
-            if (isNaN(num) || num < 0) num = 0;
-            if (num > maxMap[criterion]) {
-                num = maxMap[criterion];
-                document.getElementById(`score-${criterion}`).value = num;
-            }
-            document.getElementById(`range-${criterion}`).value = num;
-            recalculateTotalScore();
-        };
-
-        function recalculateTotalScore() {
-            const c1 = parseFloat(document.getElementById('score-c1').value) || 0;
-            const c2 = parseFloat(document.getElementById('score-c2').value) || 0;
-            const c3 = parseFloat(document.getElementById('score-c3').value) || 0;
-            const c4 = parseFloat(document.getElementById('score-c4').value) || 0;
-            const c5 = parseFloat(document.getElementById('score-c5').value) || 0;
-            const total = Math.round((c1 + c2 + c3 + c4 + c5) * 10) / 10;
-            document.getElementById('total-score-display').textContent = total;
-            return { c1, c2, c3, c4, c5, total };
-        }
-
-        window.submitEvaluation = async function(e) {
-            e.preventDefault();
-            if (!state.currentJudge || !state.selectedProjectCode) return;
-
-            const project = (state.projects.local || []).find(p => p.code === state.selectedProjectCode);
-            if (!project) return;
-
-            const { c1, c2, c3, c4, c5, total } = recalculateTotalScore();
-            const notes = document.getElementById('judge-notes').value.trim();
-
-            const evalId = `${STAGE_KEY}_${project.code}_${state.currentJudge.id}`;
-
-            const evalRecord = {
-                id: evalId,
-                stage: STAGE_KEY,
-                projectCode: project.code,
-                projectTitle: project.title,
-                projectStudents: project.students || "",
-                projectSchool: project.school || "",
-                projectAdministration: project.administration || "",
-                projectCategory: project.category,
-                judgeId: state.currentJudge.id,
-                judgeName: state.currentJudge.name,
-                judgePhone: state.currentJudge.phone,
-                judgeSpecialty: state.currentJudge.specialty,
-                scores: { c1, c2, c3, c4, c5 },
-                totalScore: total,
-                notes,
-                timestamp: new Date().toISOString()
-            };
-
-            const idx = state.evaluations.findIndex(ev => ev.id === evalId);
-            if (idx > -1) {
-                state.evaluations[idx] = evalRecord;
-            } else {
-                state.evaluations.push(evalRecord);
-            }
-
-            saveToLocalStorage();
-            await saveEvaluationToCloud(evalRecord);
-            await sendEvaluationToGoogleSheet(evalRecord);
-
-            updateJudgeEvaluatedCounter();
-            selectProjectForJudging(project.code);
-            showToast(`تم حفظ تقييم المشروع ${project.code} بنجاح (${total}/100)`, "success");
-        };
-
-        async function sendEvaluationToGoogleSheet(evalRecord) {
-            const targetUrl = state.sheetsWebhookUrl || DEFAULT_SHEETS_WEBHOOK_URL;
-            if (!targetUrl) return;
-            try {
-                await fetch(targetUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(evalRecord)
+                onAuthStateChanged(state.auth, (user) => {
+                    if (user) {
+                        state.user = user;
+                        state.isCloudConnected = true;
+                        updateSyncBadge(true);
+                        subscribeToCloudData();
+                    }
                 });
-            } catch (err) {
-                console.warn("Google Sheets webhook send error:", err);
+            } catch (error) {
+                console.warn("Running in local-first mode:", error);
+                updateSyncBadge(false);
             }
         }
 
-        // ==========================================
-        // QR CODE & GOOGLE SHEETS LINKING MODAL
-        // ==========================================
-        window.openQrAndSheetsModal = function() {
-            const currentUrl = window.location.href;
-            const isLocalBlob = currentUrl.startsWith('blob:') || currentUrl.startsWith('about:') || currentUrl.startsWith('data:') || currentUrl.startsWith('file:');
+        function updateSyncBadge(connected) {
+            const badge = document.getElementById('sync-badge');
+            if (!badge) return;
+            if (connected) {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> متصل سحابياً`;
+                badge.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 flex items-center gap-1";
+            } else {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-300"></span> جاهز للتحكيم`;
+                badge.className = "text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30 flex items-center gap-1";
+            }
+        }
 
-            document.getElementById('modal-title').textContent = "رمز QR للمحكمين وربط شيت النتائج التلقائي";
-            document.getElementById('modal-body').innerHTML = `
-                <div class="space-y-5">
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                                <i class="fas fa-qrcode text-isef-600"></i>
-                                <span>1. رمز QR لفتح المنصة على موبايلات الحكام</span>
-                            </h4>
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-isef-100 text-isef-800">جاهز للمسح</span>
-                        </div>
-                        <div class="flex flex-col sm:flex-row items-center gap-4">
-                            <div id="qrcode-canvas-box" class="bg-white p-3 rounded-xl border-2 border-amber-400 shadow-sm shrink-0"></div>
-                            <div class="space-y-2 flex-1 w-full">
-                                <label class="block text-xs font-bold text-slate-600">رابط المنصة المربوط بالـ QR (يمكنك تعديله بعد الرفع):</label>
-                                <div class="flex gap-1.5">
-                                    <input type="text" id="qr-target-url" value="${isLocalBlob ? 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/' : currentUrl}" oninput="regenerateQrCode(this.value)"
-                                        placeholder="الصق رابط الاستضافة هنا..."
-                                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono text-left" dir="ltr">
-                                    <button type="button" onclick="copyQrLink()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shrink-0">
-                                        نسخ
-                                    </button>
-                                </div>
-                                <div class="flex flex-wrap gap-2 pt-1">
-                                    <button type="button" onclick="downloadQrCodePng()" class="px-3 py-1.5 bg-isef-700 hover:bg-isef-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
-                                        <i class="fas fa-download"></i> تحميل صورة QR للطباعة
-                                    </button>
-                                    <button type="button" onclick="downloadStandaloneHtml()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
-                                        <i class="fas fa-file-code"></i> تحميل ملف index.html
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-extrabold text-emerald-950 text-sm flex items-center gap-2">
-                                <i class="fas fa-table text-emerald-600"></i>
-                                <span>2. ربط الدرجات تلقائياً بشيت النتائج (Google Sheets / Excel)</span>
-                            </h4>
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${state.sheetsWebhookUrl ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}">
-                                ${state.sheetsWebhookUrl ? 'مربوط ونشط' : 'تصدير Excel مباشر'}
-                            </span>
-                        </div>
-                        <p class="text-xs text-slate-600">
-                            جميع تقييمات المحكمين تُحفظ وتُجمع تلقائياً داخل تبويب <strong>"لوحة النتائج والبيانات"</strong> ويمكنك تصديرها بضغطة زر إلى <strong>Excel</strong>، أو لصق رابط <strong>Google Apps Script Web App</strong> هنا لإرسال كل تقييم فور اعتماده إلى شيت Google مباشرة:
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <input type="url" id="sheets-webhook-input" value="${state.sheetsWebhookUrl || ''}"
-                                placeholder="https://script.google.com/macros/s/...../exec"
-                                class="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono text-left" dir="ltr">
-                            <button type="button" onclick="saveSheetsWebhook()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0">
-                                حفظ الربط
-                            </button>
-                            <button type="button" onclick="syncAllExistingToSheets()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shrink-0">
-                                مزامنة الكل الآن
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const modal = document.getElementById('custom-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            const initialQrText = isLocalBlob ? 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/' : currentUrl;
-            regenerateQrCode(initialQrText);
-        };
-
-        window.regenerateQrCode = function(urlText) {
-            const box = document.getElementById('qrcode-canvas-box');
-            if (!box) return;
-            box.innerHTML = '';
-            const textToEncode = (urlText && urlText.trim()) ? urlText.trim() : 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/';
-            new QRCode(box, {
-                text: textToEncode,
-                width: 140,
-                height: 140,
-                colorDark: "#082f49",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+        function subscribeToCloudData() {
+            if (!state.db || !state.user) return;
+            const evalsRef = collection(state.db, 'artifacts', state.appId, 'public', 'data', 'evaluations');
+            onSnapshot(evalsRef, (snapshot) => {
+                const cloudEvals = [];
+                snapshot.forEach(docSnap => {
+                    cloudEvals.push(docSnap.data());
+                });
+                if (cloudEvals.length > 0) {
+                    const mergedMap = new Map();
+                    state.evaluations.forEach(ev => mergedMap.set(ev.id, ev));
+                    cloudEvals.forEach(ev => mergedMap.set(ev.id, ev));
+                    state.evaluations = Array.from(mergedMap.values());
+                    saveToLocalStorage();
+                    refreshAllViews();
+                }
+            }, (err) => {
+                console.error("Firestore evals snapshot error:", err);
             });
-        };
 
-        window.downloadQrCodePng = function() {
-            const canvas = document.querySelector('#qrcode-canvas-box canvas');
-            const img = document.querySelector('#qrcode-canvas-box img');
-            let dataUrl = '';
-            if (canvas) {
-                dataUrl = canvas.toDataURL('image/png');
-            } else if (img && img.src) {
-                dataUrl = img.src;
-            }
-            if (!dataUrl) {
-                showToast("تعذر استخراج صورة QR", "error");
-                return;
-            }
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = 'QR_تحكيم_معرض_قطاع_شرق_القاهرة_ISEF.png';
-            a.click();
-            showToast("تم تحميل صورة الـ QR Code بنجاح", "success");
-        };
+            const projectsDocRef = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'config', 'projects_lists');
+            onSnapshot(projectsDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.local && Array.isArray(data.local) && data.local.length >= 75) state.projects.local = data.local;
+                    if (data.sector && Array.isArray(data.sector)) state.projects.sector = data.sector;
+                    saveToLocalStorage();
+                    refreshAllViews();
+                }
+            });
+        }
 
-        window.copyQrLink = function() {
-            const input = document.getElementById('qr-target-url');
-            if (!input || !input.value.trim()) {
-                showToast("يرجى كتابة أو لصق الرابط أولاً", "error");
-                return;
-            }
-            input.select();
-            document.execCommand('copy');
-            showToast("تم نسخ رابط المنصة بنجاح", "success");
-        };
-
-        window.downloadStandaloneHtml = function() {
-            const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'index.html';
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast("تم تنزيل ملف index.html الجاهز للرفع", "success");
-        };
-
-        window.saveSheetsWebhook = function() {
-            const val = document.getElementById('sheets-webhook-input').value.trim();
-            state.sheetsWebhookUrl = val;
+        async function pushEvaluationToCloud(evalObj) {
+            if (!state.db || !state.user) return;
             try {
-                if (val) localStorage.setItem(LS_KEYS.SHEETS_URL, val);
-                else localStorage.removeItem(LS_KEYS.SHEETS_URL);
-            } catch (e) {}
-            showToast(val ? "تم تفعيل الربط التلقائي مع Google Sheets بنجاح" : "تم إلغاء رابط Google Sheets", "success");
-        };
+                const evalDoc = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'evaluations', evalObj.id);
+                await setDoc(evalDoc, evalObj);
+            } catch (e) {
+                console.error("Error saving evaluation to cloud:", e);
+            }
+        }
 
-        window.syncAllExistingToSheets = async function() {
-            if (!state.sheetsWebhookUrl) {
-                showToast("أدخل رابط Google Apps Script Web App أولاً", "error");
-                return;
+        async function pushProjectsToCloud() {
+            if (!state.db || !state.user) return;
+            try {
+                const projectsDoc = doc(state.db, 'artifacts', state.appId, 'public', 'data', 'config', 'projects_lists');
+                await setDoc(projectsDoc, {
+                    local: state.projects.local,
+                    sector: state.projects.sector,
+                    updatedAt: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Error syncing projects to cloud:", e);
             }
-            if (state.evaluations.length === 0) {
-                showToast("لا توجد تقييمات مسجلة حالياً لإرسالها", "info");
-                return;
-            }
-            for (const ev of state.evaluations) {
-                await sendEvaluationToGoogleSheet(ev);
-            }
-            showToast(`تمت مزامنة ${state.evaluations.length} تقييم مع شيت النتائج بنجاح`, "success");
-        };
+        }
 
         // ==========================================
-        // 6. ADMIN DASHBOARD & LEADERBOARD (75 PROJECTS)
+        // 4. UI UTILITIES (TOASTS, MODALS & PIN SECURITY)
         // ==========================================
-        function updateCountsUI() {
-            const totalCount = (state.projects.local || []).length;
-            const badgeEl = document.getElementById('badge-local-count');
-            const kpiEl = document.getElementById('kpi-total-projects');
-            if (badgeEl) badgeEl.textContent = totalCount;
-            if (kpiEl) kpiEl.textContent = totalCount;
-        }
-
-        function computeProjectStats() {
-            const projects = state.projects.local || [];
-            const stageEvals = state.evaluations || [];
-
-            return projects.map(proj => {
-                const projEvals = stageEvals.filter(ev => ev.projectCode === proj.code);
-                const judgesCount = projEvals.length;
-                const avgScore = judgesCount > 0
-                    ? Math.round((projEvals.reduce((sum, e) => sum + e.totalScore, 0) / judgesCount) * 100) / 100
-                    : 0;
-
-                return {
-                    ...proj,
-                    judgesCount,
-                    avgScore,
-                    evaluations: projEvals
-                };
-            });
-        }
-
-        function renderAdminDashboard() {
-            updateCountsUI();
-
-            document.getElementById('kpi-total-evals').textContent = state.evaluations.length;
-            const uniqueJudges = new Set(state.evaluations.map(e => e.judgeId));
-            document.getElementById('kpi-total-judges').textContent = uniqueJudges.size;
-
-            const currentStats = computeProjectStats();
-            const evaluatedProjects = currentStats.filter(p => p.judgesCount > 0);
-            if (evaluatedProjects.length > 0) {
-                const maxAvg = Math.max(...evaluatedProjects.map(p => p.avgScore));
-                document.getElementById('kpi-highest-avg').textContent = `${maxAvg}/100`;
-            } else {
-                document.getElementById('kpi-highest-avg').textContent = "-";
-            }
-
-            renderAdminTable();
-        }
-
-        window.renderAdminTable = function() {
-            const query = document.getElementById('admin-search-input').value.trim().toLowerCase();
-            const catFilter = document.getElementById('admin-category-filter').value;
-            const sortBy = document.getElementById('admin-sort-select').value;
-
-            let data = computeProjectStats();
-
-            data = data.filter(item => {
-                const matchesCat = catFilter === 'ALL' || item.category === catFilter;
-                const matchesQuery = !query ||
-                    item.code.toLowerCase().includes(query) ||
-                    item.title.toLowerCase().includes(query) ||
-                    item.students.toLowerCase().includes(query) ||
-                    item.school.toLowerCase().includes(query) ||
-                    (item.administration && item.administration.toLowerCase().includes(query)) ||
-                    item.category.toLowerCase().includes(query);
-                return matchesCat && matchesQuery;
-            });
-
-            if (sortBy === 'SCORE_DESC') {
-                data.sort((a, b) => b.avgScore - a.avgScore || b.judgesCount - a.judgesCount);
-            } else if (sortBy === 'CODE_ASC') {
-                data.sort((a, b) => a.code.localeCompare(b.code));
-            } else if (sortBy === 'JUDGES_DESC') {
-                data.sort((a, b) => b.judgesCount - a.judgesCount || b.avgScore - a.avgScore);
-            }
-
-            const tbody = document.getElementById('admin-results-tbody');
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">لا توجد بيانات مطابقة</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = data.map((row, index) => {
-                const rankBadge = row.judgesCount > 0
-                    ? (index === 0 ? '🥇 1' : index === 1 ? '🥈 2' : index === 2 ? '🥉 3' : `#${index + 1}`)
-                    : '-';
-
-                return `
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="py-3.5 px-4 text-center font-extrabold text-slate-700">${rankBadge}</td>
-                        <td class="py-3.5 px-4">
-                            <span class="font-mono text-xs font-extrabold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200">${row.code}</span>
-                        </td>
-                        <td class="py-3.5 px-4 font-bold text-slate-900 max-w-xs">${row.title}</td>
-                        <td class="py-3.5 px-4 text-xs text-slate-600">${row.category}</td>
-                        <td class="py-3.5 px-4">
-                            <div class="font-semibold text-slate-800 text-xs">${row.students}</div>
-                            <div class="text-[11px] text-slate-400">${row.school}${row.administration ? ' • ' + row.administration : ''}</div>
-                        </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                row.judgesCount > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-400'
-                            }">
-                                <i class="fas fa-user-tie text-[10px]"></i> ${row.judgesCount}
-                            </span>
-                        </td>
-                        <td class="py-3.5 px-4 text-center">
-                            ${
-                                row.judgesCount > 0
-                                    ? `<span class="font-black text-base text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">${row.avgScore}</span>`
-                                    : `<span class="text-xs text-slate-400">بانتظار التحكيم</span>`
-                            }
-                        </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <button type="button" onclick="openProjectDetailsModal('${row.code}')" class="px-3 py-1.5 bg-isef-50 hover:bg-isef-100 text-isef-700 rounded-lg text-xs font-bold transition cursor-pointer">
-                                عرض التقييمات
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-emerald-600 text-white border-emerald-700',
+                error: 'bg-rose-600 text-white border-rose-700',
+                warning: 'bg-amber-500 text-slate-950 border-amber-600',
+                info: 'bg-isef-800 text-white border-isef-900'
+            };
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} px-4 py-3 rounded-xl shadow-lg border flex items-center gap-3 text-xs sm:text-sm font-bold pointer-events-auto transition-all duration-300 transform translate-y-0`;
+            toast.innerHTML = `<i class="fas ${icons[type]} text-base"></i><span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
         };
 
-        window.openProjectDetailsModal = function(projectCode) {
-            const stats = computeProjectStats();
-            const project = stats.find(p => p.code === projectCode);
-            if (!project) return;
-
-            document.getElementById('modal-title').textContent = `تفاصيل تحكيم: ${project.code} — ${project.title}`;
-
-            let bodyHtml = `
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 space-y-1">
-                    <div class="text-xs text-slate-500"><strong>الطلاب:</strong> ${project.students}</div>
-                    <div class="text-xs text-slate-500"><strong>المدرسة:</strong> ${project.school}</div>
-                    <div class="text-xs text-slate-500"><strong>الفئة:</strong> ${project.category}</div>
-                    <div class="pt-2 flex items-center gap-4">
-                        <span class="text-xs font-bold text-isef-700">عدد المحكمين: ${project.judgesCount}</span>
-                        <span class="text-xs font-bold text-emerald-700">المتوسط العام: ${project.avgScore} / 100</span>
-                    </div>
-                </div>
-            `;
-
-            if (project.evaluations.length === 0) {
-                bodyHtml += `<div class="text-center py-8 text-slate-400">لم يتم تسجيل أي تقييم لهذا المشروع حتى الآن.</div>`;
+        window.openModal = function(title, htmlContent, customFooterHtml = null) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').innerHTML = htmlContent;
+            const footer = document.getElementById('modal-footer');
+            if (customFooterHtml !== null) {
+                footer.innerHTML = customFooterHtml;
             } else {
-                bodyHtml += `<div class="space-y-3">` + project.evaluations.map(ev => `
-                    <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-2">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div>
-                                <div class="font-bold text-slate-800">${ev.judgeName}</div>
-                                <div class="text-[11px] text-slate-400">${ev.judgeSpecialty} — موبايل: ${ev.judgePhone || '—'}</div>
-                            </div>
-                            <div class="text-lg font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">${ev.totalScore} / 100</div>
-                        </div>
-                        <div class="grid grid-cols-5 gap-1 text-center text-[11px] bg-slate-50 p-2 rounded-lg">
-                            <div><span class="block text-slate-400">سؤال البحث</span><strong>${ev.scores.c1}/10</strong></div>
-                            <div><span class="block text-slate-400">المنهجية</span><strong>${ev.scores.c2}/15</strong></div>
-                            <div><span class="block text-slate-400">التنفيذ</span><strong>${ev.scores.c3}/20</strong></div>
-                            <div><span class="block text-slate-400">الإبداع</span><strong>${ev.scores.c4}/20</strong></div>
-                            <div><span class="block text-slate-400">العرض</span><strong>${ev.scores.c5}/35</strong></div>
-                        </div>
-                        ${ev.notes ? `<div class="text-xs text-slate-600 bg-amber-50/60 p-2.5 rounded-lg border border-amber-100"><strong>ملاحظات:</strong> ${ev.notes}</div>` : ''}
-                    </div>
-                `).join('') + `</div>`;
+                footer.innerHTML = `<button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition cursor-pointer">إغلاق</button>`;
             }
-
-            document.getElementById('modal-body').innerHTML = bodyHtml;
             const modal = document.getElementById('custom-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1730,8 +989,743 @@
             modal.classList.remove('flex');
         };
 
+        window.requireAdminPin = function(callback) {
+            if (adminUnlocked) {
+                callback();
+                return;
+            }
+            pendingAdminAction = callback;
+            const html = `
+                <form onsubmit="verifyAdminPinSubmit(event)" class="space-y-4 text-center py-2">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-base">منطقة محمية — خاصة باللجنة المنظمة</h4>
+                        <p class="text-xs text-slate-500 mt-1">أدخل الرقم السري للإدارة لفتح لوحة النتائج والإعدادات</p>
+                    </div>
+                    <div class="max-w-xs mx-auto">
+                        <input type="password" id="admin-pin-input" inputmode="numeric" maxlength="10" required autofocus
+                            placeholder="••••"
+                            class="w-full text-center tracking-[0.5em] text-2xl font-black py-3 px-4 bg-slate-50 border-2 border-slate-300 rounded-xl focus:border-isef-600 focus:ring-2 focus:ring-isef-500 outline-none">
+                        <p id="admin-pin-error" class="text-xs font-bold text-rose-600 mt-2 hidden">الرقم السري غير صحيح، حاول مرة أخرى.</p>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 pt-2">
+                        <button type="submit" class="px-6 py-2.5 bg-isef-700 hover:bg-isef-800 text-white font-bold rounded-xl text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fas fa-unlock"></i>
+                            <span>تأكيد الدخول</span>
+                        </button>
+                        <button type="button" onclick="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition cursor-pointer">
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            `;
+            openModal('التحقق من صلاحية الإدارة', html, '');
+            setTimeout(() => {
+                const inp = document.getElementById('admin-pin-input');
+                if (inp) inp.focus();
+            }, 100);
+        };
+
+        window.verifyAdminPinSubmit = function(event) {
+            event.preventDefault();
+            const inp = document.getElementById('admin-pin-input');
+            const errEl = document.getElementById('admin-pin-error');
+            if (!inp) return;
+            if (inp.value.trim() === ADMIN_PIN_CODE) {
+                adminUnlocked = true;
+                closeModal();
+                showToast('تم تفعيل وضع الإدارة بنجاح', 'success');
+                if (typeof pendingAdminAction === 'function') {
+                    const fn = pendingAdminAction;
+                    pendingAdminAction = null;
+                    fn();
+                }
+            } else {
+                if (errEl) errEl.classList.remove('hidden');
+                inp.value = '';
+                inp.focus();
+            }
+        };
+
+        window.confirmClearAllEvaluations = function() {
+            const html = `
+                <div class="text-center space-y-4 py-2">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-base">تأكيد حذف وتصفير التقييمات التجريبية</h4>
+                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                            سيتم مسح جميع التقييمات المسجلة محلياً في لوحة النتائج لتصبح <strong>صفر</strong> وجاهزة لبدء التحكيم الفعلي.
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-center gap-3 pt-2">
+                        <button type="button" onclick="executeClearAllEvaluations()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer flex items-center gap-2">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>نعم، احذف جميع التقييمات الآن</span>
+                        </button>
+                        <button type="button" onclick="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer">
+                            تراجع
+                        </button>
+                    </div>
+                </div>
+            `;
+            openModal('حذف التقييمات السابقة', html, '');
+        };
+
+        window.executeClearAllEvaluations = function() {
+            state.evaluations = [];
+            saveToLocalStorage();
+            closeModal();
+            refreshAllViews();
+            if (state.selectedProjectCode) {
+                resetRubricForm();
+            }
+            showToast('تم حذف جميع التقييمات السابقة وتصفير العدادات بنجاح', 'success');
+        };
+
         // ==========================================
-        // 7. EXCEL (SHEETJS) IMPORT & EXPORT (75 PROJECTS)
+        // 4.5 QR CODE & GOOGLE SHEETS LINK MODAL
+        // ==========================================
+        function getSavedSheetsUrl() {
+            const saved = localStorage.getItem(LS_KEYS.SHEETS_URL);
+            return (saved && saved.trim() !== '') ? saved.trim() : DEFAULT_SHEETS_WEBHOOK_URL;
+        }
+
+        window.openQrAndSheetsModal = function() {
+            const currentUrl = window.location.href.split('#')[0];
+            const savedWebhook = getSavedSheetsUrl();
+            const isLocalFile = currentUrl.startsWith('file://') || currentUrl.startsWith('about:') || currentUrl.startsWith('blob:');
+
+            const html = `
+                <div class="space-y-6">
+                    <!-- Section 1: QR Code for Judges -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 text-center space-y-3">
+                        <h4 class="font-extrabold text-slate-900 text-base flex items-center justify-center gap-2">
+                            <i class="fas fa-qrcode text-isef-700"></i>
+                            <span>1. رمز الاستجابة السريع (QR Code) لدخول المحكمين</span>
+                        </h4>
+                        <p class="text-xs text-slate-600">اطبع هذا الرمز أو اعرضه للمحكمين لمسحه بكاميرا الموبايل والدخول فوراً إلى شاشة التحكيم:</p>
+                        
+                        <div class="bg-white p-4 rounded-2xl border-2 border-amber-400 inline-block shadow-md mx-auto">
+                            <div id="qr-code-render-box" class="flex items-center justify-center"></div>
+                        </div>
+
+                        <div class="text-[11px] text-slate-500 break-all bg-white px-3 py-2 rounded-xl border border-slate-200 font-mono" dir="ltr">
+                            ${currentUrl}
+                        </div>
+
+                        ${isLocalFile ? `
+                        <div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-xs text-right">
+                            <strong>تنبيه:</strong> أنت تفتح الملف حالياً من جهازك المحلي. لكي يعمل الـ QR على موبايلات المحكمين، ارفع ملف <code>index.html</code> على استضافة مجانية مثل <strong>GitHub Pages</strong> أو <strong>Netlify</strong> أو <strong>Vercel</strong> ثم افتح الرابط واضغط هذا الزر.
+                        </div>
+                        ` : ''}
+
+                        <div class="flex flex-wrap justify-center gap-2 pt-1">
+                            <button type="button" onclick="downloadQrCodeImage()" class="px-4 py-2 bg-isef-700 hover:bg-isef-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                                <i class="fas fa-download"></i>
+                                <span>تحميل صورة QR للطباعة</span>
+                            </button>
+                            <button type="button" onclick="copyAppLinkToClipboard('${currentUrl}')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                                <i class="fas fa-copy"></i>
+                                <span>نسخ رابط المنصة</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Google Sheets Live Sync -->
+                    <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3">
+                        <h4 class="font-extrabold text-emerald-950 text-base flex items-center gap-2">
+                            <i class="fas fa-table text-emerald-600"></i>
+                            <span>2. ربط الدرجات تلقائياً بشيت النتائج (Google Sheets)</span>
+                        </h4>
+                        <p class="text-xs text-slate-700 leading-relaxed">
+                            عند وضع رابط <strong>Google Apps Script Web App</strong> هنا، سيتم إرسال كل تقييم يحفظه أي محكم من هاتفه <strong>تلقائياً وفوراً</strong> إلى شيت Google Sheets الخاص باللجنة المنظمة:
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="url" id="sheets-webhook-input" value="${savedWebhook}"
+                                placeholder="https://script.google.com/macros/s/.../exec"
+                                class="flex-1 px-3 py-2.5 bg-white border border-emerald-300 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500 text-left" dir="ltr">
+                            <button type="button" onclick="saveSheetsWebhookUrl()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
+                                حفظ الربط
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-[11px] text-emerald-800 font-semibold">
+                                <i class="fas fa-check-circle ml-1"></i> يدعم أيضاً التصدير المباشر لـ Excel في أي وقت
+                            </span>
+                            <button type="button" onclick="syncAllEvaluationsToSheets()" class="text-xs font-bold text-isef-700 hover:underline cursor-pointer">
+                                <i class="fas fa-sync-alt ml-1"></i> مزامنة الكل الآن
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            openModal('QR المحكمين وربط شيت النتائج المباشر', html);
+
+            setTimeout(() => {
+                const qrBox = document.getElementById('qr-code-render-box');
+                if (qrBox && typeof QRCode !== 'undefined') {
+                    qrBox.innerHTML = '';
+                    new QRCode(qrBox, {
+                        text: currentUrl,
+                        width: 190,
+                        height: 190,
+                        colorDark: "#082f49",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }
+            }, 60);
+        };
+
+        window.downloadQrCodeImage = function() {
+            const qrCanvas = document.querySelector('#qr-code-render-box canvas');
+            const qrImg = document.querySelector('#qr-code-render-box img');
+            let dataUrl = '';
+            if (qrCanvas) {
+                dataUrl = qrCanvas.toDataURL('image/png');
+            } else if (qrImg) {
+                dataUrl = qrImg.src;
+            }
+            if (!dataUrl) {
+                showToast('جاري تجهيز رمز QR، حاول مرة أخرى', 'warning');
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'QR_تحكيم_معرض_شرق_القاهرة_ISEF.png';
+            a.click();
+            showToast('تم تحميل صورة QR Code بنجاح', 'success');
+        };
+
+        window.copyAppLinkToClipboard = function(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('تم نسخ رابط منصة التحكيم لإرساله للمحكمين', 'success');
+            }).catch(() => {
+                showToast('انسخ الرابط الظاهر أسفل الباركود', 'info');
+            });
+        };
+
+        window.saveSheetsWebhookUrl = function() {
+            const inp = document.getElementById('sheets-webhook-input');
+            if (!inp) return;
+            const url = inp.value.trim();
+            if (!url) {
+                localStorage.removeItem(LS_KEYS.SHEETS_URL);
+                showToast('تم حذف رابط المزامنة الخارجية', 'info');
+                return;
+            }
+            localStorage.setItem(LS_KEYS.SHEETS_URL, url);
+            showToast('تم حفظ رابط Google Sheets بنجاح! ستصل التقييمات إليه تلقائياً', 'success');
+        };
+
+        async function sendEvaluationToGoogleSheets(evalObj) {
+            const webhookUrl = getSavedSheetsUrl();
+            if (!webhookUrl) return;
+            try {
+                const proj = getProjectsByStage(evalObj.stage).find(p => p.code === evalObj.projectCode) || {};
+                const payload = {
+                    ...evalObj,
+                    projectTitle: evalObj.projectTitle || proj.title || '',
+                    projectStudents: evalObj.projectStudents || proj.students || '',
+                    projectSchool: evalObj.projectSchool || proj.school || '',
+                    projectAdministration: evalObj.projectAdministration || proj.administration || '',
+                    projectCategory: evalObj.projectCategory || proj.category || ''
+                };
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.warn('Google Sheets sync warning:', err);
+            }
+        }
+
+        window.syncAllEvaluationsToSheets = async function() {
+            const webhookUrl = getSavedSheetsUrl();
+            if (!webhookUrl) {
+                showToast('يرجى إدخال وحفظ رابط Google Sheets أولاً', 'warning');
+                return;
+            }
+            if (state.evaluations.length === 0) {
+                showToast('لا توجد تقييمات مسجلة لمزامنتها حالياً', 'info');
+                return;
+            }
+            showToast(`جاري إرسال ${state.evaluations.length} تقييم إلى Google Sheets...`, 'info');
+            for (const ev of state.evaluations) {
+                await sendEvaluationToGoogleSheets(ev);
+            }
+            showToast('تمت مزامنة جميع التقييمات مع الشيت بنجاح', 'success');
+        };
+
+        // ==========================================
+        // 5. NAVIGATION & JUDGE LOGIN FLOW
+        // ==========================================
+        window.switchMainView = function(viewName) {
+            if (viewName === 'admin' && !adminUnlocked) {
+                requireAdminPin(() => switchMainView('admin'));
+                return;
+            }
+
+            state.currentView = viewName;
+            const viewJudge = document.getElementById('view-judge');
+            const viewAdmin = document.getElementById('view-admin');
+            const navJudge = document.getElementById('nav-judge');
+            const navAdmin = document.getElementById('nav-admin');
+
+            if (viewName === 'judge') {
+                viewJudge.classList.remove('hidden');
+                viewAdmin.classList.add('hidden');
+                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow cursor-pointer";
+                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10 cursor-pointer";
+                renderJudgeWorkspace();
+            } else {
+                viewJudge.classList.add('hidden');
+                viewAdmin.classList.remove('hidden');
+                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow cursor-pointer";
+                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10 cursor-pointer";
+                renderAdminDashboard();
+            }
+        };
+
+        window.handleJudgeLogin = function(event) {
+            if (event) event.preventDefault();
+            const nameInput = document.getElementById('judge-name');
+            const specialtyInput = document.getElementById('judge-specialty');
+            const phoneInput = document.getElementById('judge-phone');
+
+            const name = nameInput ? nameInput.value.trim() : '';
+            const specialty = specialtyInput ? specialtyInput.value.trim() : '';
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+
+            if (!name || !specialty || !phone) {
+                showToast('يرجى إدخال اسم المحكم والتخصص ورقم الموبايل', 'error');
+                return false;
+            }
+
+            state.activeJudge = {
+                name,
+                specialty,
+                phone,
+                stage: STAGE_KEY
+            };
+            state.selectedProjectCode = null;
+            saveToLocalStorage();
+            renderJudgeWorkspace();
+            showToast(`أهلاً بك ${name} في لجنة تحكيم معرض قطاع شرق القاهرة ISEF`, 'success');
+            return false;
+        };
+
+        window.logoutJudge = function() {
+            state.activeJudge = null;
+            state.selectedProjectCode = null;
+            saveToLocalStorage();
+            renderJudgeWorkspace();
+            showToast('تم تسجيل خروج المحكم', 'info');
+        };
+
+        // ==========================================
+        // 6. JUDGE WORKSPACE & SCORING RUBRIC
+        // ==========================================
+        function getProjectsByStage(stage) {
+            return state.projects[stage] || state.projects.local || [];
+        }
+
+        function renderJudgeWorkspace() {
+            const loginScreen = document.getElementById('judge-login-screen');
+            const workspace = document.getElementById('judge-workspace');
+            const headerPill = document.getElementById('active-judge-pill');
+
+            if (!state.activeJudge) {
+                loginScreen.classList.remove('hidden');
+                workspace.classList.add('hidden');
+                headerPill.classList.add('hidden');
+                headerPill.classList.remove('flex');
+                return;
+            }
+
+            state.activeJudge.stage = STAGE_KEY;
+            loginScreen.classList.add('hidden');
+            workspace.classList.remove('hidden');
+            headerPill.classList.remove('hidden');
+            headerPill.classList.add('flex');
+
+            const j = state.activeJudge;
+            document.getElementById('header-judge-name').textContent = j.name;
+            document.getElementById('ws-judge-name').textContent = j.name;
+            document.getElementById('ws-judge-meta').textContent = `${j.specialty}  |  موبايل: ${j.phone}`;
+
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            document.getElementById('stage-projects-total').textContent = `${stageProjects.length} مشروع`;
+
+            const myEvalsCount = state.evaluations.filter(e =>
+                e.judgePhone === j.phone
+            ).length;
+            document.getElementById('ws-evaluated-count').textContent = `${myEvalsCount} / ${stageProjects.length}`;
+
+            populateCategoryDropdown('category-filter-select', stageProjects);
+            filterProjectsList();
+        }
+
+        function populateCategoryDropdown(selectId, projectsList) {
+            const select = document.getElementById(selectId);
+            const currentVal = select.value;
+            const categories = [...new Set(projectsList.map(p => p.category).filter(Boolean))].sort();
+            select.innerHTML = `<option value="ALL">جميع الفئات العلمية (${projectsList.length})</option>`;
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                select.appendChild(opt);
+            });
+            if (categories.includes(currentVal)) select.value = currentVal;
+        }
+
+        window.filterProjectsList = function() {
+            if (!state.activeJudge) return;
+            const query = document.getElementById('project-search-input').value.trim().toLowerCase();
+            const catFilter = document.getElementById('category-filter-select').value;
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+
+            const filtered = stageProjects.filter(p => {
+                const matchesCat = catFilter === 'ALL' || p.category === catFilter;
+                const matchesQuery = !query ||
+                    p.code.toLowerCase().includes(query) ||
+                    p.title.toLowerCase().includes(query) ||
+                    (p.students && p.students.toLowerCase().includes(query)) ||
+                    (p.school && p.school.toLowerCase().includes(query));
+                return matchesCat && matchesQuery;
+            });
+
+            const container = document.getElementById('projects-quick-list');
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">لا توجد مشاريع مطابقة لبحثك</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const isEvaluatedByMe = state.evaluations.some(e =>
+                    e.projectCode === p.code &&
+                    e.judgePhone === state.activeJudge.phone
+                );
+                const isSelected = state.selectedProjectCode === p.code;
+
+                return `
+                    <div onclick="selectProjectForJudging('${p.code}')"
+                        class="p-3 rounded-xl cursor-pointer transition border ${isSelected ? 'bg-isef-50 border-isef-500 shadow-sm' : 'bg-white border-transparent hover:bg-slate-50'}">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="text-xs font-black px-2 py-0.5 rounded bg-slate-800 text-amber-300 tracking-wide">${p.code}</span>
+                            ${isEvaluatedByMe
+                                ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fas fa-check"></i> تم التقييم</span>`
+                                : `<span class="text-[11px] font-semibold text-slate-400">بانتظار التقييم</span>`
+                            }
+                        </div>
+                        <h4 class="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">${p.title}</h4>
+                        <p class="text-[11px] text-slate-500 mt-0.5 truncate">${p.students || ''} — ${p.school || ''}</p>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.selectProjectForJudging = function(code) {
+            state.selectedProjectCode = code;
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const project = stageProjects.find(p => p.code === code);
+            if (!project) return;
+
+            document.getElementById('no-project-selected').classList.add('hidden');
+            document.getElementById('evaluation-form-container').classList.remove('hidden');
+
+            document.getElementById('card-project-code').textContent = project.code;
+            document.getElementById('card-project-title').textContent = project.title;
+            document.getElementById('card-project-students').textContent = project.students || 'غير محدد';
+            document.getElementById('card-project-school').textContent = `${project.school || ''} ${project.administration ? '(' + project.administration + ')' : ''}`;
+            document.getElementById('card-project-category').textContent = project.category || '';
+
+            const existingEval = state.evaluations.find(e =>
+                e.projectCode === code &&
+                e.judgePhone === state.activeJudge.phone
+            );
+
+            if (existingEval) {
+                document.getElementById('card-eval-status').textContent = `تم تقييمه مسبقاً (${existingEval.totalScore} / 100) — يمكنك التعديل`;
+                document.getElementById('submit-eval-text').textContent = 'تحديث وحفظ التقييم';
+                setRubricValues(existingEval.scores, existingEval.notes || '');
+            } else {
+                document.getElementById('card-eval-status').textContent = 'تقييم جديد';
+                document.getElementById('submit-eval-text').textContent = 'اعتماد وحفظ التقييم';
+                resetRubricForm();
+            }
+
+            filterProjectsList();
+            if (window.innerWidth < 1024) {
+                document.getElementById('evaluation-form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+
+        const MAX_SCORES = { c1: 10, c2: 15, c3: 20, c4: 20, c5: 35 };
+
+        window.syncScoreInput = function(key, val) {
+            let num = parseFloat(val);
+            if (isNaN(num)) num = 0;
+            if (num < 0) num = 0;
+            if (num > MAX_SCORES[key]) num = MAX_SCORES[key];
+            document.getElementById(`score-${key}`).value = num;
+            document.getElementById(`range-${key}`).value = num;
+            calculateTotalScore();
+        };
+
+        window.syncScoreRange = function(key, val) {
+            const num = parseFloat(val) || 0;
+            document.getElementById(`score-${key}`).value = num;
+            calculateTotalScore();
+        };
+
+        function calculateTotalScore() {
+            const c1 = parseFloat(document.getElementById('score-c1').value) || 0;
+            const c2 = parseFloat(document.getElementById('score-c2').value) || 0;
+            const c3 = parseFloat(document.getElementById('score-c3').value) || 0;
+            const c4 = parseFloat(document.getElementById('score-c4').value) || 0;
+            const c5 = parseFloat(document.getElementById('score-c5').value) || 0;
+            const total = Math.round((c1 + c2 + c3 + c4 + c5) * 10) / 10;
+            document.getElementById('total-score-display').textContent = total;
+            return { c1, c2, c3, c4, c5, total };
+        }
+
+        function setRubricValues(scores, notes) {
+            ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(k => {
+                const v = scores[k] || 0;
+                document.getElementById(`score-${k}`).value = v;
+                document.getElementById(`range-${k}`).value = v;
+            });
+            document.getElementById('judge-notes').value = notes;
+            calculateTotalScore();
+        }
+
+        window.resetRubricForm = function() {
+            setRubricValues({ c1: 0, c2: 0, c3: 0, c4: 0, c5: 0 }, '');
+        };
+
+        window.submitEvaluation = async function(event) {
+            event.preventDefault();
+            if (!state.activeJudge || !state.selectedProjectCode) return;
+
+            const { c1, c2, c3, c4, c5, total } = calculateTotalScore();
+            if (total === 0) {
+                showToast('يرجى رصد درجات التقييم قبل الحفظ', 'warning');
+                return;
+            }
+
+            const notes = document.getElementById('judge-notes').value.trim();
+            const j = state.activeJudge;
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const project = stageProjects.find(p => p.code === state.selectedProjectCode) || {};
+            const cleanPhone = j.phone.replace(/\s+/g, '');
+            const evalId = `${STAGE_KEY}_${state.selectedProjectCode}_${cleanPhone}`;
+
+            const evalRecord = {
+                id: evalId,
+                stage: STAGE_KEY,
+                projectCode: state.selectedProjectCode,
+                projectTitle: project.title || '',
+                projectStudents: project.students || '',
+                projectSchool: project.school || '',
+                projectAdministration: project.administration || '',
+                projectCategory: project.category || '',
+                judgeName: j.name,
+                judgeSpecialty: j.specialty,
+                judgePhone: j.phone,
+                scores: { c1, c2, c3, c4, c5 },
+                totalScore: total,
+                notes,
+                timestamp: new Date().toISOString()
+            };
+
+            const existingIdx = state.evaluations.findIndex(e => e.id === evalId);
+            if (existingIdx >= 0) {
+                state.evaluations[existingIdx] = evalRecord;
+            } else {
+                state.evaluations.push(evalRecord);
+            }
+
+            saveToLocalStorage();
+            await pushEvaluationToCloud(evalRecord);
+            sendEvaluationToGoogleSheets(evalRecord);
+
+            document.getElementById('card-eval-status').textContent = `تم الحفظ بنجاح (${total} / 100)`;
+            document.getElementById('submit-eval-text').textContent = 'تحديث وحفظ التقييم';
+            renderJudgeWorkspace();
+            showToast(`تم اعتماد تقييم المشروع ${state.selectedProjectCode} بمجموع ${total}/100`, 'success');
+        };
+
+        // ==========================================
+        // 7. ADMIN DASHBOARD, EXCEL IMPORT/EXPORT & LEADERBOARD
+        // ==========================================
+        function renderAdminDashboard() {
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const stageEvals = state.evaluations;
+
+            document.getElementById('badge-local-count').textContent = stageProjects.length;
+
+            const uniqueJudges = new Set(stageEvals.map(e => e.judgePhone)).size;
+            let highestAvg = 0;
+
+            stageProjects.forEach(p => {
+                const pEvals = stageEvals.filter(e => e.projectCode === p.code);
+                if (pEvals.length > 0) {
+                    const avg = pEvals.reduce((sum, e) => sum + e.totalScore, 0) / pEvals.length;
+                    if (avg > highestAvg) highestAvg = avg;
+                }
+            });
+
+            document.getElementById('kpi-total-projects').textContent = stageProjects.length;
+            document.getElementById('kpi-total-evals').textContent = stageEvals.length;
+            document.getElementById('kpi-total-judges').textContent = uniqueJudges;
+            document.getElementById('kpi-highest-avg').textContent = highestAvg > 0 ? `${highestAvg.toFixed(1)}` : '-';
+
+            populateCategoryDropdown('admin-category-filter', stageProjects);
+            renderAdminTable();
+        }
+
+        window.renderAdminTable = function() {
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const stageEvals = state.evaluations;
+            const search = document.getElementById('admin-search-input').value.trim().toLowerCase();
+            const catFilter = document.getElementById('admin-category-filter').value;
+            const sortBy = document.getElementById('admin-sort-select').value;
+
+            let enriched = stageProjects.map(p => {
+                const pEvals = stageEvals.filter(e => e.projectCode === p.code);
+                const count = pEvals.length;
+                const avg = count > 0
+                    ? Math.round((pEvals.reduce((acc, item) => acc + item.totalScore, 0) / count) * 100) / 100
+                    : 0;
+                return { ...p, evals: pEvals, judgesCount: count, avgScore: avg };
+            });
+
+            enriched = enriched.filter(p => {
+                const matchCat = catFilter === 'ALL' || p.category === catFilter;
+                const matchSearch = !search ||
+                    p.code.toLowerCase().includes(search) ||
+                    p.title.toLowerCase().includes(search) ||
+                    (p.students && p.students.toLowerCase().includes(search)) ||
+                    (p.school && p.school.toLowerCase().includes(search));
+                return matchCat && matchSearch;
+            });
+
+            if (sortBy === 'SCORE_DESC') {
+                enriched.sort((a, b) => b.avgScore - a.avgScore || b.judgesCount - a.judgesCount);
+            } else if (sortBy === 'CODE_ASC') {
+                enriched.sort((a, b) => a.code.localeCompare(b.code));
+            } else if (sortBy === 'JUDGES_DESC') {
+                enriched.sort((a, b) => b.judgesCount - a.judgesCount || b.avgScore - a.avgScore);
+            }
+
+            const tbody = document.getElementById('admin-results-tbody');
+            if (enriched.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400 text-sm">لا توجد مشاريع مطابقة</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = enriched.map((p, idx) => {
+                const rankBadge = idx === 0 && p.avgScore > 0
+                    ? `<span class="w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black inline-flex items-center justify-center shadow-sm">1</span>`
+                    : idx === 1 && p.avgScore > 0
+                    ? `<span class="w-7 h-7 rounded-full bg-slate-300 text-slate-900 font-black inline-flex items-center justify-center">2</span>`
+                    : idx === 2 && p.avgScore > 0
+                    ? `<span class="w-7 h-7 rounded-full bg-amber-700/80 text-white font-black inline-flex items-center justify-center">3</span>`
+                    : `<span class="text-slate-500 font-bold">${idx + 1}</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50/90 transition">
+                        <td class="py-3 px-4 text-center">${rankBadge}</td>
+                        <td class="py-3 px-4 font-black text-xs text-isef-800">${p.code}</td>
+                        <td class="py-3 px-4 font-bold text-slate-800 max-w-xs">${p.title}</td>
+                        <td class="py-3 px-4 text-xs text-slate-600">${p.category || '-'}</td>
+                        <td class="py-3 px-4 text-xs">
+                            <div class="font-semibold text-slate-700">${p.students || '-'}</div>
+                            <div class="text-slate-400 text-[11px]">${p.school || ''} ${p.administration ? '• ' + p.administration : ''}</div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${p.judgesCount > 0 ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-400'}">
+                                ${p.judgesCount} محكم
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            ${p.judgesCount > 0
+                                ? `<span class="text-base font-black text-emerald-700">${p.avgScore}</span><span class="text-[11px] text-slate-400"> / 100</span>`
+                                : `<span class="text-xs text-slate-400">لم يُقيّم</span>`
+                            }
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button type="button" onclick="viewProjectEvaluationsModal('${p.code}')"
+                                class="px-3 py-1.5 bg-isef-50 hover:bg-isef-100 text-isef-700 rounded-lg text-xs font-bold transition cursor-pointer">
+                                عرض التقييمات
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.viewProjectEvaluationsModal = function(code) {
+            const project = getProjectsByStage(STAGE_KEY).find(p => p.code === code);
+            const pEvals = state.evaluations.filter(e => e.projectCode === code);
+
+            if (!project) return;
+
+            let html = `
+                <div class="bg-slate-100 p-4 rounded-xl mb-4 space-y-1">
+                    <div class="text-xs font-black text-isef-700">${project.code} — ${project.category || ''}</div>
+                    <div class="text-base font-extrabold text-slate-900">${project.title}</div>
+                    <div class="text-xs text-slate-600">الطلاب: ${project.students || '-'} | المدرسة: ${project.school || '-'} (${project.administration || ''})</div>
+                </div>
+            `;
+
+            if (pEvals.length === 0) {
+                html += `<div class="text-center py-8 text-slate-400">لم يتم تسجيل أي تقييم لهذا المشروع حتى الآن.</div>`;
+            } else {
+                const avg = (pEvals.reduce((s, e) => s + e.totalScore, 0) / pEvals.length).toFixed(2);
+                html += `
+                    <div class="mb-4 flex items-center justify-between bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl">
+                        <span class="font-bold text-emerald-900">متوسط الدرجات النهائي (${pEvals.length} محكم):</span>
+                        <span class="text-xl font-black text-emerald-700">${avg} / 100</span>
+                    </div>
+                    <div class="space-y-3">
+                        ${pEvals.map(ev => `
+                            <div class="border border-slate-200 rounded-xl p-4 space-y-2 bg-white">
+                                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                                    <div>
+                                        <span class="font-extrabold text-slate-800">${ev.judgeName}</span>
+                                        <span class="text-xs text-slate-500 block">${ev.judgeSpecialty} | موبايل: ${ev.judgePhone}</span>
+                                    </div>
+                                    <span class="px-3 py-1 rounded-lg bg-isef-700 text-white font-black text-sm">${ev.totalScore} / 100</span>
+                                </div>
+                                <div class="grid grid-cols-5 gap-1.5 text-center text-[11px] bg-slate-50 p-2 rounded-lg">
+                                    <div><span class="text-slate-400 block">سؤال البحث</span><strong>${ev.scores.c1}/10</strong></div>
+                                    <div><span class="text-slate-400 block">التصميم</span><strong>${ev.scores.c2}/15</strong></div>
+                                    <div><span class="text-slate-400 block">التنفيذ</span><strong>${ev.scores.c3}/20</strong></div>
+                                    <div><span class="text-slate-400 block">الإبداع</span><strong>${ev.scores.c4}/20</strong></div>
+                                    <div><span class="text-slate-400 block">العرض</span><strong>${ev.scores.c5}/35</strong></div>
+                                </div>
+                                ${ev.notes ? `<div class="text-xs text-slate-600 bg-amber-50/70 p-2.5 rounded-lg border border-amber-200/60"><strong>ملاحظات المحكم:</strong> ${ev.notes}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            openModal(`تفاصيل تحكيم المشروع: ${project.code}`, html);
+        };
+
+        // ==========================================
+        // 8. EXCEL IMPORT, TEMPLATE & EXPORT
         // ==========================================
         window.handleExcelUpload = function(event) {
             const file = event.target.files[0];
@@ -1742,193 +1736,185 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-
                     const firstSheetName = workbook.SheetNames[0];
-                    const ws = workbook.Sheets[firstSheetName];
-                    const jsonRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-                    const importedLocal = jsonRows.map(row => {
-                        const code = String(row['الكود'] || row['كود المشروع'] || row['Code'] || row['code'] || '').trim();
-                        const title = String(row['اسم المشروع'] || row['المشروع'] || row['Title'] || row['title'] || '').trim();
-                        const students = String(row['الطلاب'] || row['أسماء الطلاب'] || row['اسم الطالب'] || row['Students'] || '').trim();
-                        const school = String(row['المدرسة'] || row['School'] || '').trim();
-                        const administration = String(row['الإدارة'] || row['الإدارة التعليمية'] || row['Administration'] || '').trim();
-                        const category = String(row['الفئة'] || row['الفئة العلمية'] || row['Category'] || '').trim();
-                        return { code, title, students, school, administration, category };
-                    }).filter(item => item.code && item.title);
-
-                    if (importedLocal.length === 0) {
-                        showToast("لم يتم العثور على أعمدة صالحة (الكود، اسم المشروع، الطلاب، المدرسة، الفئة)", "error");
+                    if (!rows || rows.length === 0) {
+                        showToast('الملف فارغ أو لا يحتوي على صفوف صالحة', 'error');
                         return;
                     }
 
-                    state.projects = { local: importedLocal };
+                    const mappedProjects = rows.map((row, idx) => {
+                        const code = String(row['الكود'] || row['كود المشروع'] || row['Code'] || row['code'] || `PRJ-${String(idx + 1).padStart(2, '0')}`).trim();
+                        const title = String(row['اسم المشروع'] || row['عنوان المشروع'] || row['Project Title'] || row['Title'] || '').trim();
+                        const students = String(row['الطلاب'] || row['اسم الطالب'] || row['أسماء الطلاب'] || row['Students'] || '').trim();
+                        const school = String(row['المدرسة'] || row['School'] || '').trim();
+                        const administration = String(row['الإدارة التعليمية'] || row['الإدارة'] || row['Administration'] || '').trim();
+                        const category = String(row['الفئة العلمية'] || row['التخصص'] || row['الفئة'] || row['Category'] || 'عام').trim();
+                        return { code, title, students, school, administration, category };
+                    }).filter(p => p.title !== '');
 
+                    if (mappedProjects.length === 0) {
+                        showToast('تأكد من وجود عمود "اسم المشروع" و "الكود" في الشيت', 'error');
+                        return;
+                    }
+
+                    state.projects[STAGE_KEY] = mappedProjects;
                     saveToLocalStorage();
-                    await saveProjectsToCloud();
-                    populateCategoryDropdowns();
-                    renderAdminDashboard();
-                    if (state.currentJudge) filterProjectsList();
-
-                    showToast(`تم استيراد ${state.projects.local.length} مشروع بنجاح`, "success");
+                    await pushProjectsToCloud();
+                    refreshAllViews();
+                    showToast(`تم استيراد ${mappedProjects.length} مشروع إلى قائمة التحكيم بنجاح!`, 'success');
                 } catch (err) {
-                    console.error("Excel parse error:", err);
-                    showToast("حدث خطأ أثناء قراءة ملف Excel. تأكد من سلامة الملف.", "error");
+                    console.error(err);
+                    showToast('حدث خطأ أثناء قراءة ملف Excel', 'error');
                 } finally {
-                    event.target.value = "";
+                    event.target.value = '';
                 }
             };
             reader.readAsArrayBuffer(file);
         };
 
         window.downloadTemplateExcel = function() {
+            const currentProjects = getProjectsByStage(STAGE_KEY);
+            const templateData = currentProjects.map(p => ({
+                'الكود': p.code,
+                'اسم المشروع': p.title,
+                'الفئة العلمية': p.category,
+                'الطلاب': p.students,
+                'المدرسة': p.school,
+                'الإدارة التعليمية': p.administration || ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
-            const headers = [["الكود", "اسم المشروع", "الطلاب", "المدرسة", "الإدارة التعليمية", "الفئة"]];
-            const localData = headers.concat((state.projects.local || []).map(p => [p.code, p.title, p.students, p.school, p.administration || "", p.category]));
-            const wsLocal = XLSX.utils.aoa_to_sheet(localData);
-            wsLocal['!views'] = [{ rightToLeft: true }];
-            XLSX.utils.book_append_sheet(wb, wsLocal, "75 مشروع قطاع شرق");
-            XLSX.writeFile(wb, "نموذج_75_مشروع_معرض_قطاع_شرق_القاهرة_ISEF.xlsx");
-            showToast("تم تحميل نموذج شيت الـ 75 مشروع بنجاح", "info");
+            XLSX.utils.book_append_sheet(wb, ws, 'المشاريع_75');
+            XLSX.writeFile(wb, `نموذج_مشاريع_معرض_شرق_القاهرة_ISEF.xlsx`);
+            showToast('تم تحميل شيت المشاريع الـ 75 بنجاح', 'info');
         };
 
         window.exportResultsToExcel = function() {
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const stageEvals = state.evaluations;
+
+            const summaryRows = stageProjects.map(p => {
+                const pEvals = stageEvals.filter(e => e.projectCode === p.code);
+                const count = pEvals.length;
+                const avg = count > 0
+                    ? Math.round((pEvals.reduce((s, e) => s + e.totalScore, 0) / count) * 100) / 100
+                    : 0;
+                return {
+                    'الكود': p.code,
+                    'اسم المشروع': p.title,
+                    'الفئة العلمية': p.category,
+                    'الطلاب': p.students,
+                    'المدرسة': p.school,
+                    'الإدارة التعليمية': p.administration || '',
+                    'عدد المحكمين': count,
+                    'متوسط الدرجة (من 100)': avg,
+                    'أسماء المحكمين': pEvals.map(e => `${e.judgeName} (${e.totalScore})`).join(' | ')
+                };
+            }).sort((a, b) => b['متوسط الدرجة (من 100)'] - a['متوسط الدرجة (من 100)']);
+
+            summaryRows.forEach((r, idx) => { r['الترتيب'] = idx + 1; });
+            const orderedSummary = summaryRows.map(({ 'الترتيب': rank, ...rest }) => ({ 'الترتيب': rank, ...rest }));
+
+            const detailRows = stageEvals.map(ev => {
+                const proj = stageProjects.find(p => p.code === ev.projectCode) || {};
+                return {
+                    'كود المشروع': ev.projectCode,
+                    'اسم المشروع': proj.title || '',
+                    'الفئة العلمية': proj.category || '',
+                    'اسم المحكم': ev.judgeName,
+                    'تخصص المحكم': ev.judgeSpecialty,
+                    'موبايل المحكم': ev.judgePhone,
+                    'سؤال البحث (10)': ev.scores.c1,
+                    'التصميم والمنهجية (15)': ev.scores.c2,
+                    'التنفيذ والبيانات (20)': ev.scores.c3,
+                    'الإبداع والابتكار (20)': ev.scores.c4,
+                    'العرض والمقابلة (35)': ev.scores.c5,
+                    'المجموع الكلي (100)': ev.totalScore,
+                    'ملاحظات المحكم': ev.notes || '',
+                    'وقت التقييم': new Date(ev.timestamp).toLocaleString('ar-EG')
+                };
+            });
+
             const wb = XLSX.utils.book_new();
-            const stats = computeProjectStats().sort((a, b) => b.avgScore - a.avgScore);
+            const wsSummary = XLSX.utils.json_to_sheet(orderedSummary);
+            const wsDetails = XLSX.utils.json_to_sheet(detailRows.length > 0 ? detailRows : [{ 'تنبيه': 'لا توجد تقييمات مسجلة بعد' }]);
 
-            const headerBanner = [
-                ["معرض قطاع شرق القاهرة للعلوم والهندسة ISEF (75 مشروع)"],
-                [`تقرير نتائج التحكيم المعتمد — تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`],
-                []
-            ];
-            const tableHeaders = [[
-                "الترتيب",
-                "كود المشروع",
-                "اسم المشروع",
-                "الفئة العلمية",
-                "أسماء الطلاب",
-                "المدرسة",
-                "الإدارة التعليمية",
-                "عدد المحكمين",
-                "متوسط الدرجة النهائية (100)",
-                "تفاصيل درجات المحكمين"
-            ]];
-            const rows = stats.map((item, idx) => [
-                item.judgesCount > 0 ? idx + 1 : "-",
-                item.code,
-                item.title,
-                item.category,
-                item.students,
-                item.school,
-                item.administration || "",
-                item.judgesCount,
-                item.judgesCount > 0 ? item.avgScore : "لم يُقيّم",
-                item.evaluations.map(e => `${e.judgeName} (${e.totalScore})`).join(" | ")
-            ]);
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'النتائج_النهائية');
+            XLSX.utils.book_append_sheet(wb, wsDetails, 'تفاصيل_المحكمين');
 
-            const ws = XLSX.utils.aoa_to_sheet([...headerBanner, ...tableHeaders, ...rows]);
-            ws['!views'] = [{ rightToLeft: true }];
-            ws['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }
-            ];
-            XLSX.utils.book_append_sheet(wb, ws, "نتائج 75 مشروع");
-
-            const detailedRows = state.evaluations.map(ev => ({
-                "المعرض": "معرض قطاع شرق القاهرة للعلوم والهندسة ISEF",
-                "كود المشروع": ev.projectCode,
-                "اسم المشروع": ev.projectTitle,
-                "الفئة": ev.projectCategory,
-                "اسم المحكم": ev.judgeName,
-                "التخصص": ev.judgeSpecialty,
-                "موبايل المحكم": ev.judgePhone || "",
-                "سؤال البحث (10)": ev.scores.c1,
-                "التصميم والمنهجية (15)": ev.scores.c2,
-                "التنفيذ والبيانات (20)": ev.scores.c3,
-                "الإبداع (20)": ev.scores.c4,
-                "العرض والمقابلة (35)": ev.scores.c5,
-                "المجموع الكلي (100)": ev.totalScore,
-                "ملاحظات المحكم": ev.notes || "",
-                "وقت التقييم": new Date(ev.timestamp).toLocaleString('ar-EG')
-            }));
-
-            if (detailedRows.length > 0) {
-                const wsDetails = XLSX.utils.json_to_sheet(detailedRows);
-                wsDetails['!views'] = [{ rightToLeft: true }];
-                XLSX.utils.book_append_sheet(wb, wsDetails, "تفاصيل تقييمات المحكمين");
-            }
-
-            const dateStr = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `نتائج_75_مشروع_قطاع_شرق_القاهرة_ISEF_${dateStr}.xlsx`);
-            showToast("تم تصدير ملف النتائج النهائية بنجاح", "success");
+            XLSX.writeFile(wb, `نتائج_معرض_قطاع_شرق_القاهرة_ISEF.xlsx`);
+            showToast('تم تصدير ملف النتائج النهائية Excel بنجاح!', 'success');
         };
 
         window.printOfficialReport = function() {
-            const stats = computeProjectStats().sort((a, b) => b.avgScore - a.avgScore);
-            const logoSrc = state.customLogo || 'WhatsApp Image 2026-11-23 at 4.47.39 PM_2.jpeg';
-            const logoHtml = `<img src="${logoSrc}" onerror="this.style.display='none'" style="width:78px;height:78px;border-radius:50%;object-fit:cover;border:2px solid #d97706;">`;
+            const stageProjects = getProjectsByStage(STAGE_KEY);
+            const stageEvals = state.evaluations;
+            const logoSrc = document.getElementById('custom-sector-logo-img')?.src || '';
 
-            const rowsHtml = stats.map((row, idx) => `
-                <tr>
-                    <td style="text-align:center;font-weight:bold;">${row.judgesCount > 0 ? idx + 1 : '-'}</td>
-                    <td style="font-family:monospace;font-weight:bold;text-align:center;">${row.code}</td>
-                    <td style="font-weight:bold;">${row.title}</td>
-                    <td>${row.category}</td>
-                    <td>${row.students}<br><small style="color:#64748b;">${row.school}${row.administration ? ' • ' + row.administration : ''}</small></td>
-                    <td style="text-align:center;">${row.judgesCount}</td>
-                    <td style="text-align:center;font-weight:900;font-size:14px;">${row.judgesCount > 0 ? row.avgScore + ' / 100' : 'لم يُقيّم'}</td>
-                </tr>
-            `).join('');
+            const rows = stageProjects.map(p => {
+                const pEvals = stageEvals.filter(e => e.projectCode === p.code);
+                const count = pEvals.length;
+                const avg = count > 0
+                    ? (pEvals.reduce((s, e) => s + e.totalScore, 0) / count).toFixed(2)
+                    : '0.00';
+                return { ...p, count, avg: parseFloat(avg), avgStr: count > 0 ? avg : '-' };
+            }).sort((a, b) => b.avg - a.avg);
 
             const printWin = window.open('', '_blank');
-            if (!printWin) {
-                showToast("يرجى السماح بفتح النوافذ المنبثقة للطباعة", "error");
-                return;
-            }
             printWin.document.write(`
-                <!DOCTYPE html>
                 <html lang="ar" dir="rtl">
                 <head>
-                    <meta charset="UTF-8">
-                    <title>تقرير نتائج معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+                    <title>كشف نتائج معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
                     <style>
                         body { font-family: 'Cairo', sans-serif; padding: 24px; color: #0f172a; }
-                        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0c4a6e; padding-bottom: 14px; margin-bottom: 18px; }
-                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                        th, td { border: 1px solid #cbd5e1; padding: 8px; }
-                        th { background: #0c4a6e; color: #fff; }
+                        .header-box { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; border-bottom: 3px solid #082f49; padding-bottom: 14px; }
+                        .header-box img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid #eab308; }
+                        h1 { text-align: center; margin: 0 0 4px; font-size: 20px; color: #082f49; }
+                        p { text-align: center; margin: 0; color: #475569; font-size: 13px; font-weight: bold; }
+                        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: right; }
+                        th { background: #082f49; color: #ffffff; font-weight: 800; }
                         tr:nth-child(even) { background: #f8fafc; }
-                        @media print { button { display: none; } }
+                        .center { text-align: center; }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <div style="display:flex;align-items:center;gap:14px;">
-                            ${logoHtml}
-                            <div>
-                                <h1 style="margin:0;font-size:20px;color:#082f49;">معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</h1>
-                                <div style="font-size:13px;color:#475569;font-weight:bold;">ISEF East Cairo Sector — الكشف الرسمي لنتائج التحكيم (75 مشروع)</div>
-                            </div>
-                        </div>
-                        <div style="text-align:left;font-size:12px;color:#475569;">
-                            <div>التاريخ: ${new Date().toLocaleDateString('ar-EG')}</div>
-                            <div>عدد المشاريع: ${stats.length}</div>
+                    <div class="header-box">
+                        ${logoSrc ? `<img src="${logoSrc}" alt="شعار قطاع شرق القاهرة">` : ''}
+                        <div>
+                            <h1>معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</h1>
+                            <p>كشف الترتيب العام ودرجات التحكيم المعتمدة (75 مشروع) — التاريخ: ${new Date().toLocaleDateString('ar-EG')}</p>
                         </div>
                     </div>
                     <table>
                         <thead>
                             <tr>
-                                <th>م</th>
+                                <th class="center">م</th>
                                 <th>الكود</th>
                                 <th>اسم المشروع</th>
                                 <th>الفئة العلمية</th>
                                 <th>الطلاب / المدرسة</th>
-                                <th>المحكمون</th>
-                                <th>متوسط الدرجة</th>
+                                <th class="center">المحكمون</th>
+                                <th class="center">المتوسط (100)</th>
                             </tr>
                         </thead>
-                        <tbody>${rowsHtml}</tbody>
+                        <tbody>
+                            ${rows.map((r, i) => `
+                                <tr>
+                                    <td class="center">${i + 1}</td>
+                                    <td><strong>${r.code}</strong></td>
+                                    <td>${r.title}</td>
+                                    <td>${r.category}</td>
+                                    <td>${r.students} (${r.school})</td>
+                                    <td class="center">${r.count}</td>
+                                    <td class="center"><strong>${r.avgStr}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
                     </table>
                     <script>window.onload = () => { window.print(); };<\/script>
                 </body>
@@ -1937,46 +1923,20 @@
             printWin.document.close();
         };
 
-        // ==========================================
-        // 8. HELPERS & TOAST NOTIFICATIONS
-        // ==========================================
         function refreshAllViews() {
-            if (state.currentJudge) {
-                updateJudgeEvaluatedCounter();
-                filterProjectsList();
-            }
-            if (!document.getElementById('view-admin').classList.contains('hidden')) {
+            if (state.currentView === 'judge') {
+                renderJudgeWorkspace();
+            } else {
                 renderAdminDashboard();
             }
         }
 
-        window.showToast = function(message, type = "info") {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const colors = {
-                success: "bg-emerald-600 text-white border-emerald-700",
-                error: "bg-rose-600 text-white border-rose-700",
-                info: "bg-slate-800 text-white border-slate-900"
-            };
-            const icons = {
-                success: "fa-check-circle",
-                error: "fa-exclamation-circle",
-                info: "fa-info-circle"
-            };
-
-            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs sm:text-sm font-bold transition-all duration-300 transform translate-y-0 ${colors[type] || colors.info}`;
-            toast.innerHTML = `<i class="fas ${icons[type] || icons.info} text-base"></i><span>${message}</span>`;
-
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-10px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        };
-
-        window.addEventListener('DOMContentLoaded', initApp);
+        // ==========================================
+        // 9. BOOTSTRAP APPLICATION
+        // ==========================================
+        loadFromLocalStorage();
+        renderJudgeWorkspace();
+        initFirebaseSync();
     </script>
 </body>
 </html>
