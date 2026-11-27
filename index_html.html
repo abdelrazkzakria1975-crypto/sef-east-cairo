@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة تحكيم معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) for Excel Import/Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- QRCode.js for Instant Judge QR Code Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        isef: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#082f49',
+                            950: '#051e30',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+        input[type="range"] {
+            accent-color: #0369a1;
+            cursor: pointer;
+        }
+        .tab-content {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Custom Modal Container -->
+    <div id="custom-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <h3 id="modal-title" class="text-lg font-bold text-slate-800">تفاصيل</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto flex-1 text-sm"></div>
+            <div id="modal-footer" class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-gradient-to-l from-isef-950 via-isef-900 to-isef-800 text-white shadow-lg sticky top-0 z-40 border-b-2 border-amber-400/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & East Cairo Sector Logo -->
+            <div class="flex items-center gap-3.5">
+                <div class="relative group shrink-0">
+                    <div id="sector-logo-container" class="w-16 h-16 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 p-0.5 shadow-xl overflow-hidden flex items-center justify-center">
+                        <img id="custom-sector-logo-img"
+                             src="WhatsApp Image 2026-11-23 at 4.47.39 PM_2.jpeg"
+                             alt="شعار معرض قطاع شرق القاهرة للعلوم والهندسة ISEF"
+                             onerror="this.classList.add('hidden'); document.getElementById('default-sector-svg').classList.remove('hidden');"
+                             class="w-full h-full object-cover rounded-full bg-[#091b3a]">
+                        <div id="default-sector-svg" class="hidden w-full h-full rounded-full bg-[#091b3a] flex items-center justify-center relative">
+                            <svg viewBox="0 0 120 120" class="w-full h-full" aria-label="شعار معرض قطاع شرق القاهرة للعلوم والهندسة">
+                                <circle cx="60" cy="60" r="56" fill="#091b3a" stroke="#eab308" stroke-width="4" />
+                                <circle cx="60" cy="60" r="47" fill="none" stroke="#facc15" stroke-width="1.5" stroke-dasharray="3 2" />
+                                <g transform="translate(60,56)" fill="#eab308">
+                                    <circle cx="0" cy="0" r="15" fill="none" stroke="#facc15" stroke-width="3.5" stroke-dasharray="5 3" />
+                                    <circle cx="0" cy="0" r="5" fill="#fde047" />
+                                    <ellipse cx="0" cy="0" rx="22" ry="8" fill="none" stroke="#fef08a" stroke-width="1.6" transform="rotate(28)" />
+                                    <ellipse cx="0" cy="0" rx="22" ry="8" fill="none" stroke="#fef08a" stroke-width="1.6" transform="rotate(-28)" />
+                                </g>
+                                <rect x="12" y="81" width="96" height="19" rx="6" fill="#eab308" />
+                                <text x="60" y="94" text-anchor="middle" fill="#091b3a" font-size="8.2" font-weight="900">EAST CAIRO • قطاع شرق</text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight text-amber-300">معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</h1>
+                        <span id="sync-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> متصل
+                        </span>
+                    </div>
+                    <p class="text-xs text-sky-200">ISEF East Cairo Sector — نظام التحكيم الإلكتروني المعتمد (٧٥ مشروعاً)</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs, QR & Logo Upload & Judge Info -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button onclick="openQrAndSheetsModal()" title="استخراج رمز QR للمحكمين وربط شيت النتائج"
+                    class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR المحكمين وربط الشيت</span>
+                </button>
+
+                <input type="file" id="sector-logo-upload" accept="image/png, image/jpeg, image/svg+xml, image/webp" onchange="handleLogoUpload(event)" class="hidden">
+                <button onclick="document.getElementById('sector-logo-upload').click()" title="رفع أو استبدال شعار قطاع شرق القاهرة"
+                    class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-image"></i>
+                    <span class="hidden md:inline">تغيير الشعار</span>
+                </button>
+
+                <div class="flex bg-isef-950/60 p-1 rounded-xl border border-white/10">
+                    <button id="nav-judge" onclick="switchMainView('judge')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow">
+                        <i class="fas fa-gavel"></i>
+                        <span>شاشة التحكيم</span>
+                    </button>
+                    <button id="nav-admin" onclick="switchMainView('admin')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>لوحة النتائج والبيانات</span>
+                    </button>
+                </div>
+
+                <!-- Active Judge Badge -->
+                <div id="active-judge-pill" class="hidden items-center gap-2 bg-white/10 border border-white/15 px-3 py-1.5 rounded-xl text-xs">
+                    <i class="fas fa-user-check text-amber-300"></i>
+                    <span id="header-judge-name" class="font-bold max-w-[120px] truncate"></span>
+                    <button onclick="logoutJudge()" title="تغيير المحكم" class="text-rose-300 hover:text-rose-200 mr-1">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                    <p class="text-xs text-sky-200">ISEF East Cairo Sector — نظام التحكيم الإلكتروني المعتمد (75 مشروع)</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs, QR & Logo Upload & Judge Info -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button type="button" onclick="openQrAndSheetsModal()" title="استخراج رمز QR للمحكمين وربط شيت النتائج"
+                    class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR المحكمين وربط الشيت</span>
+                </button>
+
+                <input type="file" id="sector-logo-upload" accept="image/png, image/jpeg, image/svg+xml, image/webp" onchange="handleLogoUpload(event)" class="hidden">
+                <button type="button" onclick="document.getElementById('sector-logo-upload').click()" title="رفع أو استبدال شعار قطاع شرق القاهرة"
+                    class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-image"></i>
+                    <span class="hidden md:inline">تغيير الشعار</span>
+                </button>
+
+                <div class="flex bg-isef-950/60 p-1 rounded-xl border border-white/10">
+                    <button type="button" id="nav-judge" onclick="switchMainView('judge')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow">
+                        <i class="fas fa-gavel"></i>
+                        <span>شاشة التحكيم</span>
+                    </button>
+                    <button type="button" id="nav-admin" onclick="switchMainView('admin')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>لوحة النتائج والبيانات</span>
+                    </button>
+                </div>
+
+                <!-- Active Judge Badge -->
+                <div id="active-judge-pill" class="hidden items-center gap-2 bg-white/10 border border-white/15 px-3 py-1.5 rounded-xl text-xs">
+                    <i class="fas fa-user-check text-amber-300"></i>
+                    <span id="header-judge-name" class="font-bold max-w-[120px] truncate"></span>
+                    <button type="button" onclick="logoutJudge()" title="تغيير المحكم" class="text-rose-300 hover:text-rose-200 mr-1">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ========================================================= -->
+        <!-- VIEW 1: JUDGE WORKSPACE                                   -->
+        <!-- ========================================================= -->
+        <section id="view-judge" class="tab-content">
+
+            <!-- Step 1: Judge Login Card (Name, Specialty, Mobile Only) -->
+            <div id="judge-login-screen" class="max-w-xl mx-auto mt-4">
+                <div class="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+                    <div class="bg-gradient-to-l from-isef-950 via-isef-900 to-isef-700 px-6 py-7 text-white text-center relative overflow-hidden border-b-2 border-amber-400">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-700 p-0.5 flex items-center justify-center mx-auto mb-3 shadow-2xl overflow-hidden">
+                            <img id="login-sector-logo-img"
+                                 src="WhatsApp Image 2026-11-23 at 4.47.39 PM_2.jpeg"
+                                 alt="شعار معرض قطاع شرق القاهرة"
+                                 onerror="this.classList.add('hidden'); document.getElementById('login-sector-svg').classList.remove('hidden');"
+                                 class="w-full h-full object-cover rounded-full bg-[#091b3a]">
+                            <div id="login-sector-svg" class="hidden w-full h-full rounded-full bg-[#091b3a] flex items-center justify-center">
+                                <svg viewBox="0 0 120 120" class="w-full h-full">
+                                    <circle cx="60" cy="60" r="56" fill="#091b3a" stroke="#eab308" stroke-width="4" />
+                                    <circle cx="60" cy="54" r="15" fill="none" stroke="#facc15" stroke-width="3.5" stroke-dasharray="5 3" />
+                                    <circle cx="60" cy="54" r="5" fill="#fde047" />
+                                    <rect x="12" y="81" width="96" height="19" rx="6" fill="#eab308" />
+                                    <text x="60" y="94" text-anchor="middle" fill="#091b3a" font-size="8.2" font-weight="900">EAST CAIRO • قطاع شرق</text>
+                                </svg>
+                            </div>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-amber-300">تسجيل دخول لجنة التحكيم</h2>
+                        <p class="text-sky-100 text-sm mt-1">معرض قطاع شرق القاهرة للعلوم والهندسة ISEF — 75 مشروع</p>
+                    </div>
+
+                    <form id="judge-login-form" onsubmit="handleJudgeLogin(event)" class="p-6 sm:p-8 space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">اسم المحكم <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" id="judge-name" required placeholder="مثال: د. أحمد محمود علي"
+                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">تخصص المحكم (ISEF) <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
+                                    <i class="fas fa-microscope"></i>
+                                </span>
+                                <input type="text" id="judge-specialty" list="isef-specialties-list" required placeholder="اختر أو اكتب تخصص المحكم..."
+                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold">
+                                <datalist id="isef-specialties-list">
+                                    <option value="SOFT - برمجيات الأنظمة والذكاء الاصطناعي (Systems Software)">
+                                    <option value="ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)">
+                                    <option value="EBED - الأنظمة المدمجة (Embedded Systems)">
+                                    <option value="BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)">
+                                    <option value="ENBM - الهندسة الطبية الحيوية (Biomedical Engineering)">
+                                    <option value="TMED - العلوم الطبية الانتقالية (Translational Medical Science)">
+                                    <option value="ENEV - الهندسة البيئية (Environmental Engineering)">
+                                    <option value="EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)">
+                                    <option value="BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)">
+                                    <option value="CHEM - الكيمياء وعلوم المواد (Chemistry & Materials Science)">
+                                    <option value="PHYS - الفيزياء والفلك (Physics and Astronomy)">
+                                    <option value="PLNT - علوم النبات والأحياء (Plant & Biological Sciences)">
+                                    <option value="ANIM - علوم الحيوان (Animal Sciences)">
+                                    <option value="CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)">
+                                    <option value="MATH - الرياضيات وعلوم البيانات (Mathematics & Data Science)">
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">موبايل المحكم <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
+                                    <i class="fas fa-mobile-alt"></i>
+                                </span>
+                                <input type="tel" id="judge-phone" required placeholder="مثال: 01012345678"
+                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold text-left" dir="ltr">
+                            </div>
+                        </div>
+
+                        <button id="judge-login-submit-btn" type="submit" class="w-full py-3.5 px-6 bg-isef-700 hover:bg-isef-800 text-white font-bold rounded-xl shadow-lg shadow-isef-700/25 transition flex items-center justify-center gap-2 text-base cursor-pointer">
+                            <i class="fas fa-gavel"></i>
+                            <span>دخول وبدء التحكيم (75 مشروع)</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Step 2: Active Judging Workspace -->
+            <div id="judge-workspace" class="hidden space-y-6">
+
+                <!-- Judge Status Banner -->
+                <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-isef-100 text-isef-700 flex items-center justify-center font-extrabold text-lg">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 id="ws-judge-name" class="font-extrabold text-base sm:text-lg text-slate-900"></h2>
+                                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-isef-100 text-isef-800">75 مشروع — قطاع شرق القاهرة</span>
+                            </div>
+                            <p id="ws-judge-meta" class="text-xs text-slate-500 mt-0.5"></p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-center">
+                            <span class="block text-[11px] text-slate-500">تقييماتك المسجلة</span>
+                            <span id="ws-evaluated-count" class="font-extrabold text-base text-emerald-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-Column Layout: Project Selector & Rubric Form -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                    <!-- Right Column (5 cols): Search & Project List -->
+                    <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[78vh]">
+                        <div class="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                                    <i class="fas fa-search text-isef-600"></i>
+                                    <span>اختيار المشروع للتحكيم</span>
+                                </h3>
+                                <span id="stage-projects-total" class="text-xs font-bold text-isef-700 bg-isef-50 px-2.5 py-0.5 rounded-full border border-isef-200">75 مشروع</span>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div class="relative">
+                                <input type="text" id="project-search-input" oninput="filterProjectsList()"
+                                    placeholder="ابحث بالكود (مثل SOFT-01) أو اسم المشروع أو الطالب..."
+                                    class="w-full pr-9 pl-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-isef-500 outline-none">
+                                <i class="fas fa-barcode absolute right-3 top-3 text-slate-400"></i>
+                            </div>
+
+                            <!-- Category Filter -->
+                            <select id="category-filter-select" onchange="filterProjectsList()"
+                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-isef-500">
+                                <option value="ALL">جميع الفئات العلمية</option>
+                            </select>
+                        </div>
+
+                        <!-- Scrollable Projects List -->
+                        <div id="projects-quick-list" class="p-3 overflow-y-auto space-y-2 flex-1 divide-y divide-slate-100"></div>
+                    </div>
+
+                    <!-- Left Column (7 cols): Evaluation Card -->
+                    <div class="lg:col-span-7">
+                        <!-- Placeholder when no project is selected -->
+                        <div id="no-project-selected" class="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-10 text-center space-y-3">
+                            <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-700">اختر مشروعاً من القائمة لبدء التحكيم</h3>
+                            <p class="text-sm text-slate-500 max-w-md mx-auto">يمكنك البحث السريع بكود المشروع المطبوع على بوستر الطالب أو اختياره مباشرة من القائمة الجانبية.</p>
+                        </div>
+
+                        <!-- Active Evaluation Form -->
+                        <div id="evaluation-form-container" class="hidden bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                            <!-- Project Header Details -->
+                            <div class="bg-gradient-to-l from-slate-900 to-isef-900 text-white p-5 sm:p-6">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                    <span id="card-project-code" class="px-3 py-1 rounded-lg bg-amber-400 text-slate-950 font-extrabold text-sm tracking-wider"></span>
+                                    <span id="card-eval-status" class="text-xs font-bold px-3 py-1 rounded-full bg-white/15 text-sky-100"></span>
+                                </div>
+                                <h3 id="card-project-title" class="text-lg sm:text-xl font-extrabold leading-snug"></h3>
+                                <div class="mt-3 pt-3 border-t border-white/15 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-sky-100">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-user-graduate text-amber-300"></i>
+                                        <span id="card-project-students" class="font-semibold"></span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-school text-amber-300"></i>
+                                        <span id="card-project-school"></span>
+                                    </div>
+                                    <div class="sm:col-span-2 flex items-center gap-2">
+                                        <i class="fas fa-tag text-amber-300"></i>
+                                        <span id="card-project-category" class="text-amber-200 font-semibold"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Scoring Rubric Form (Total = 100) -->
+                            <form onsubmit="submitEvaluation(event)" class="p-5 sm:p-6 space-y-5">
+                                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                                    <h4 class="font-extrabold text-slate-800 text-base">معايير التقييم المعتمدة (ISEF Rubric)</h4>
+                                    <div class="flex items-center gap-2 bg-isef-50 border border-isef-200 px-3.5 py-1.5 rounded-xl">
+                                        <span class="text-xs font-bold text-isef-800">المجموع الكلي:</span>
+                                        <span id="total-score-display" class="text-xl font-black text-isef-700">0</span>
+                                        <span class="text-xs font-bold text-slate-500">/ 100</span>
+                                    </div>
+                                </div>
+
+                                <!-- Criterion 1: 10 pts -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-bold text-sm text-slate-800">1. سؤال البحث / المشكلة الهندسية</span>
+                                            <p class="text-xs text-slate-500">وضوح الهدف، القابلية للقياس، والأهمية العلمية للمشكلة</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <input type="number" id="score-c1" min="0" max="10" step="0.5" value="0" oninput="syncScoreInput('c1', this.value)"
+                                                class="w-16 text-center font-extrabold text-base py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-isef-500 outline-none">
+                                            <span class="text-xs font-bold text-slate-500">/ 10</span>
+                                        </div>
+                                    </div>
+                                    <input type="range" id="range-c1" min="0" max="10" step="0.5" value="0" oninput="syncScoreRange('c1', this.value)" class="w-full h-2 bg-slate-200 rounded-lg">
+                                </div>
+
+                                <!-- Criterion 2: 15 pts -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-bold text-sm text-slate-800">2. التصميم والمنهجية العلمية</span>
+                                            <p class="text-xs text-slate-500">تخطيط التجارب، المتغيرات الضابطة، أو مراحل التصميم الهندسي</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <input type="number" id="score-c2" min="0" max="15" step="0.5" value="0" oninput="syncScoreInput('c2', this.value)"
+                                                class="w-16 text-center font-extrabold text-base py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-isef-500 outline-none">
+                                            <span class="text-xs font-bold text-slate-500">/ 15</span>
+                                        </div>
+                                    </div>
+                                    <input type="range" id="range-c2" min="0" max="15" step="0.5" value="0" oninput="syncScoreRange('c2', this.value)" class="w-full h-2 bg-slate-200 rounded-lg">
+                                </div>
+
+                                <!-- Criterion 3: 20 pts -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-bold text-sm text-slate-800">3. التنفيذ وجمع وتحليل البيانات</span>
+                                            <p class="text-xs text-slate-500">دقة التجارب أو كفاءة النموذج الأولي، كفاية البيانات والتحليل الإحصائي</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <input type="number" id="score-c3" min="0" max="20" step="0.5" value="0" oninput="syncScoreInput('c3', this.value)"
+                                                class="w-16 text-center font-extrabold text-base py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-isef-500 outline-none">
+                                            <span class="text-xs font-bold text-slate-500">/ 20</span>
+                                        </div>
+                                    </div>
+                                    <input type="range" id="range-c3" min="0" max="20" step="0.5" value="0" oninput="syncScoreRange('c3', this.value)" class="w-full h-2 bg-slate-200 rounded-lg">
+                                </div>
+
+                                <!-- Criterion 4: 20 pts -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-bold text-sm text-slate-800">4. الإبداع والابتكار (Creativity)</span>
+                                            <p class="text-xs text-slate-500">أصالة الفكرة، الابتكار في الحلول أو الأدوات، والتميز عن الدراسات السابقة</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <input type="number" id="score-c4" min="0" max="20" step="0.5" value="0" oninput="syncScoreInput('c4', this.value)"
+                                                class="w-16 text-center font-extrabold text-base py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-isef-500 outline-none">
+                                            <span class="text-xs font-bold text-slate-500">/ 20</span>
+                                        </div>
+                                    </div>
+                                    <input type="range" id="range-c4" min="0" max="20" step="0.5" value="0" oninput="syncScoreRange('c4', this.value)" class="w-full h-2 bg-slate-200 rounded-lg">
+                                </div>
+
+                                <!-- Criterion 5: 35 pts -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <span class="font-bold text-sm text-slate-800">5. العرض التقديمي والمقابلة الشخصية</span>
+                                            <p class="text-xs text-slate-500">وضوح لوحة العرض (Poster)، الفهم العميق، والثقة في الإجابة عن أسئلة المحكم</p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            <input type="number" id="score-c5" min="0" max="35" step="0.5" value="0" oninput="syncScoreInput('c5', this.value)"
+                                                class="w-16 text-center font-extrabold text-base py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-isef-500 outline-none">
+                                            <span class="text-xs font-bold text-slate-500">/ 35</span>
+                                        </div>
+                                    </div>
+                                    <input type="range" id="range-c5" min="0" max="35" step="0.5" value="0" oninput="syncScoreRange('c5', this.value)" class="w-full h-2 bg-slate-200 rounded-lg">
+                                </div>
+
+                                <!-- Judge Notes -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">ملاحظات وتوصيات المحكم (اختياري)</label>
+                                    <textarea id="judge-notes" rows="2" placeholder="اكتب أي نقاط قوة أو توصيات لتطوير المشروع..."
+                                        class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-isef-500 outline-none"></textarea>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="flex flex-wrap items-center gap-3 pt-2">
+                                    <button type="submit" class="flex-1 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="submit-eval-text">اعتماد وحفظ التقييم</span>
+                                    </button>
+                                    <button type="button" onclick="resetRubricForm()" class="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer">
+                                        تصفير الدرجات
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- VIEW 2: ADMIN DASHBOARD, EXCEL SYNC & RESULTS             -->
+        <!-- ========================================================= -->
+        <section id="view-admin" class="hidden tab-content space-y-6">
+
+            <!-- Top KPIs -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-isef-100 text-isef-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-semibold">إجمالي المشاريع المسجلة</span>
+                        <div id="kpi-total-projects" class="text-2xl font-black text-slate-900">75</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-semibold">التقييمات المعتمدة</span>
+                        <div id="kpi-total-evals" class="text-2xl font-black text-emerald-700">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-semibold">المحكمون المشاركون</span>
+                        <div id="kpi-total-judges" class="text-2xl font-black text-purple-700">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-semibold">أعلى متوسط درجات</span>
+                        <div id="kpi-highest-avg" class="text-2xl font-black text-amber-600">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Bar: 75 Projects Badge + Excel Import/Export -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                <div class="flex items-center gap-2.5 bg-isef-50 border border-isef-200 px-4 py-2.5 rounded-xl">
+                    <i class="fas fa-layer-group text-isef-700"></i>
+                    <span class="text-xs sm:text-sm font-extrabold text-isef-900">
+                        قائمة التحكيم: 75 مشروع (<span id="badge-local-count">75</span> مشروع)
+                    </span>
+                </div>
+
+                <!-- Excel Actions -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('excel-file-input').click()" class="px-4 py-2.5 bg-isef-700 hover:bg-isef-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-file-upload"></i>
+                        <span>استيراد شيت بيانات (Excel/CSV)</span>
+                    </button>
+
+                    <button type="button" onclick="downloadTemplateExcel()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fas fa-download"></i>
+                        <span>نموذج الشيت</span>
+                    </button>
+
+                    <button type="button" onclick="exportResultsToExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-file-excel"></i>
+                        <span>تصدير النتائج النهائية (Excel)</span>
+                    </button>
+
+                    <button type="button" onclick="printOfficialReport()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-print"></i>
+                        <span>طباعة الكشف</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Filter & Leaderboard Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-trophy text-amber-500 text-lg"></i>
+                        <h3 class="font-extrabold text-slate-800 text-base">ترتيب المشاريع ونتائج التحكيم الفورية</h3>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="admin-search-input" oninput="renderAdminTable()" placeholder="بحث بالكود أو المشروع أو المدرسة..."
+                            class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-isef-500 flex-1 sm:w-60">
+
+                        <select id="admin-category-filter" onchange="renderAdminTable()"
+                            class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-isef-500">
+                            <option value="ALL">جميع الفئات</option>
+                        </select>
+
+                        <select id="admin-sort-select" onchange="renderAdminTable()"
+                            class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-isef-500">
+                            <option value="SCORE_DESC">الترتيب: الأعلى درجة</option>
+                            <option value="CODE_ASC">الترتيب: كود المشروع</option>
+                            <option value="JUDGES_DESC">الترتيب: الأكثر تحكيماً</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/80 text-slate-600 text-xs font-extrabold border-b border-slate-200">
+                                <th class="py-3.5 px-4 w-16 text-center">الترتيب</th>
+                                <th class="py-3.5 px-4 w-28">الكود</th>
+                                <th class="py-3.5 px-4">اسم المشروع</th>
+                                <th class="py-3.5 px-4">الفئة العلمية</th>
+                                <th class="py-3.5 px-4">الطلاب / المدرسة</th>
+                                <th class="py-3.5 px-4 text-center">عدد المحكمين</th>
+                                <th class="py-3.5 px-4 text-center">متوسط الدرجة</th>
+                                <th class="py-3.5 px-4 text-center">التفاصيل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-results-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            منصة التحكيم الإلكتروني لمعرض قطاع شرق القاهرة للعلوم والهندسة ISEF — تعمل بكفاءة على الهواتف الذكية والأجهزة اللوحية مع تصدير فوري لـ Excel
+        </div>
+    </footer>
+
+    <!-- Application Logic & Firebase Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. DEFAULT DATASET (75 PROJECTS - EAST CAIRO SECTOR ISEF)
+        // ==========================================
+        const DEFAULT_LOCAL_PROJECTS = [
+            { code: "EBED-01", title: "بوابة جراج ذكية (Smart Parking Gate)", students: "جنى أحمد محمد منصور", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "BMED-01", title: "صديقي المختلف (My Different Friend)", students: "كارن محمد طلبة رياض الجزار", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "BEHA-01", title: "الحروف المختلفة (مرض الديسلكسيا)", students: "جنى أحمد محمد كامل فرغلي", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)" },
+            { code: "TMED-01", title: "حياة بدون قيود سكرية (Life without diabetes restriction)", students: "هنا أحمد عبد العزيز ، سلمى محمد شعبان", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "TMED - العلوم الطبية الانتقالية (Translational Medical Science)" },
+            { code: "BMED-02", title: "الكبسولة الذكية (Smart Capsule)", students: "ملك عبد الرحمن محمد راضي", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ROBO-01", title: "عربية إطفاء حريق ذكية (Smart Fire Truck)", students: "علي أحمد علي عدلي غالي", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "ROBO-02", title: "روبوت كاسحة الألغام (Minesweeper Robot)", students: "لانا محمود أمين ، لامار محمود أمين", school: "مدرسة الرائد للغات المتكاملة", administration: "إدارة النزهة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "BMED-03", title: "نظام ذكي للتنبؤ المبكر بنوبات الصرع (Early Seizure Prediction)", students: "رودينا عزام علي أحمد", school: "أبو زهرة الإسلامية", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "BMED-04", title: "خاتم ذكي لمساعدة مرضى السكر (Intelligent Ring I.R.D)", students: "نور مجدي الحبشي ، ريتاج أحمد جميل", school: "يوسف السباعي الثانوية بنات", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "CBIO-01", title: "دراسات في الهندسة الطبية الحيوية (Bio-Medical Engineering)", students: "نور محمد جاد المولى", school: "مدرسة سان رايز للغات", administration: "إدارة النزهة", category: "CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)" },
+            { code: "SOFT-01", title: "تطبيق متقدم لمساعدة الطلاب أثناء دراستهم (Smart Study Assistant)", students: "لمار مصطفى حسن ، يوسف صالح مرسي", school: "يوسف السباعي الثانوية / إسلام مشهور", administration: "إدارة النزهة", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "CBIO-02", title: "أنت طبيب نفسك (Be Your Own Doctor)", students: "عبد الله أحمد عبد المعز", school: "مدرسة سان رايز للغات", administration: "إدارة النزهة", category: "CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)" },
+            { code: "ROBO-03", title: "روبو هج (ROBO-HUG: From Plastic to Pulse Soul)", students: "رؤى بسيوني أحمد ، ريماس عمرو فؤاد", school: "مدرسة الرائد للغات المتكاملة", administration: "إدارة النزهة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "ANIM-01", title: "لقاح مطور للحيوانات الأليفة (A Better Vaccination for Dogs)", students: "عبد المعز أحمد عبد المعز", school: "مدرسة سان رايز للغات", administration: "إدارة النزهة", category: "ANIM - علوم الحيوان (Animal Sciences)" },
+            { code: "BMED-05", title: "بصير - نظام متكامل لمساعدة كبار السن والمكفوفين (BASEER)", students: "ياسين عبد الحي كمال", school: "طبري شيراتون الثانوية", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "EGSD-01", title: "تنظيف الألواح الشمسية ذاتياً (Smart Solar Panel Cleaner)", students: "مايكل مجدي سعيد إسحق", school: "طبري شيراتون الثانوية", administration: "إدارة النزهة", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "BMED-06", title: "نظام حذاء ذكي لمساعدة ذوي الإعاقة البصرية (SmartStep)", students: "إياد هشام محمد ، محمود محمد محمود", school: "جمال عبد الناصر الرسمية المتميزة", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ROBO-04", title: "روبوت الكشف عن المعادن والألغام (Metal Detector Robot)", students: "آدم سامح ، سيف محمد", school: "مدرسة سان رايز للغات", administration: "إدارة النزهة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "EBED-02", title: "جهاز ذكي لاكتشاف تسرب الغاز والوقاية من الحرائق", students: "مريم طارق عبد الحميد", school: "مدرسة السيدة خديجة للغات", administration: "إدارة النزهة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "ENEV-01", title: "وحدة معالجة وتحلية المياه باستخدام الطاقة الشمسية", students: "عمر خالد إبراهيم ، زياد وليد", school: "مدرسة النزهة للغات", administration: "إدارة النزهة", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "SOFT-02", title: "منصة الذكاء الاصطناعي للكشف المبكر عن أورام الجلد", students: "سارة محمود عبد الفتاح", school: "مدرسة سانت فاتيما للغات", administration: "إدارة النزهة", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "EBED-03", title: "نظام الري الذكي الموفر للمياه باستخدام إنترنت الأشياء", students: "يوسف أحمد كمال", school: "مدرسة المستقبل الرسمية المتميزة", administration: "إدارة النزهة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "ENEV-02", title: "إعادة تدوير المخلفات البلاستيكية لإنتاج وقود حيوي", students: "نور الدين هاني ، كريم أشرف", school: "مدرسة مصر الحديثة", administration: "إدارة النزهة", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "BEHA-02", title: "أثر الألعاب التعليمية التفاعلية على علاج تشتت الانتباه", students: "ملك شريف حسن", school: "مدرسة سان جورج", administration: "إدارة النزهة", category: "BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)" },
+            { code: "EGSD-02", title: "توليد الطاقة الكهربائية من حركة المشاة (Piezoelectric Tiles)", students: "أحمد ياسر محمد ، علي حسام", school: "مدرسة السلام المتطورة", administration: "إدارة النزهة", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "SOFT-03", title: "تطبيق الكشف المبكر عن إجهاد السائقين بالرؤية الحاسوبية", students: "ياسمين عادل محمود", school: "مدرسة العروبة للغات", administration: "إدارة مصر الجديدة", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "ROBO-05", title: "ذراع روبوتية ذكية لفرز النفايات الطبية تلقائياً", students: "مهند تامر سعيد ، عمر هيثم", school: "مدرسة الطبري الثانوية بنين", administration: "إدارة مصر الجديدة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "BMED-07", title: "جهاز مراقبة العلامات الحيوية لمرضى القلب عن بُعد", students: "نيرة أشرف إبراهيم", school: "مدرسة مصر الجديدة الثانوية بنات", administration: "إدارة مصر الجديدة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ENEV-03", title: "فلتر نانومتري لتنقية عوادم المصانع من ثاني أكسيد الكربون", students: "سلمى أيمن عبد الله ، حبيبة طارق", school: "مدرسة راهبات الأرمن الكاثوليك", administration: "إدارة مصر الجديدة", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "EBED-04", title: "منظومة إشارات مرور ذكية لإعطاء الأولوية لسيارات الإسعاف", students: "حمزة محمد فتحي", school: "مدرسة سان مارك للغات", administration: "إدارة مصر الجديدة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "CHEM-01", title: "تحضير أغشية حيوية قابلة للتحلل من قشور الروبيان", students: "فريدة وائل مصطفى", school: "مدرسة ليسيه الحرية بمصر الجديدة", administration: "إدارة مصر الجديدة", category: "CHEM - الكيمياء وعلوم المواد (Chemistry & Materials Science)" },
+            { code: "EGSD-03", title: "نظام تتبع الشمس ثنائي المحور لزيادة كفاءة الخلايا الكهروضوئية", students: "زياد عمرو محمد ، مصطفى خالد", school: "مدرسة الشهيد هشام بركات", administration: "إدارة مصر الجديدة", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "BEHA-03", title: "تحليل تأثير استخدام الذكاء الاصطناعي التوليدي على مهارات التفكير النقدي", students: "جودي محمد سامي", school: "مدرسة كلية السلام للغات", administration: "إدارة مصر الجديدة", category: "BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)" },
+            { code: "SOFT-04", title: "مترجم فوري للغة الإشارة العربية باستخدام التعلم العميق", students: "أدهم شريف حسين ، نورهان وليد", school: "مدرسة الميرديديو", administration: "إدارة مصر الجديدة", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "PLNT-01", title: "استخدام المستخلصات الطحلبية كسماد حيوي مقاوم للملوحة", students: "مريم حسام الدين", school: "مدرسة مصر الجديدة النموذجية", administration: "إدارة مصر الجديدة", category: "PLNT - علوم النبات والأحياء (Plant & Biological Sciences)" },
+            { code: "ROBO-06", title: "غواصة آلية مصغرة لفحص جودة المياه والكشف عن التلوث", students: "كريم محمد نبيل ، طارق أحمد", school: "مدرسة سانت كلير", administration: "إدارة مصر الجديدة", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "TMED-02", title: "تطوير لاصقة جلدية ذكية لقياس مستوى الجلوكوز بدون وخز", students: "دانة علاء الدين", school: "مدرسة القلب المقدس", administration: "إدارة مصر الجديدة", category: "TMED - العلوم الطبية الانتقالية (Translational Medical Science)" },
+            { code: "EBED-05", title: "خوذة ذكية لعمال البناء للإنذار المبكر من السقوط والغازات السامة", students: "باسل أحمد رضا", school: "مدرسة عبد العزيز جاويش", administration: "إدارة مصر الجديدة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "ENBM-01", title: "طرف صناعي علوي منخفض التكلفة يعمل بالإشارات العضلية (EMG)", students: "عبد الرحمن خالد ، سيف الدين طارق", school: "مدرسة المتفوقين للعلوم والتكنولوجيا (STEM)", administration: "إدارة شرق مدينة نصر", category: "ENBM - الهندسة الطبية الحيوية (Biomedical Engineering)" },
+            { code: "SOFT-05", title: "نظام ذكي لإدارة شبكات الكهرباء وتقليل الفاقد باستخدام تعلم الآلة", students: "منة الله ياسر محمد", school: "مدرسة المنهل الخاصة للغات", administration: "إدارة شرق مدينة نصر", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "ENEV-04", title: "استخلاص الهيدروجين الأخضر من مياه الصرف الصحي المعالجة", students: "يوسف علاء محمود ، أحمد إبراهيم", school: "مدرسة طلائع الكمال للغات", administration: "إدارة شرق مدينة نصر", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "BMED-08", title: "تطبيق تشخيص اعتلال الشبكية السكري عبر صور قاع العين", students: "سلمى هشام عبد العزيز", school: "مدرسة الواحة للغات", administration: "إدارة شرق مدينة نصر", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ROBO-07", title: "روبوت زراعي ذاتي القيادة لاكتشاف أمراض أوراق المحاصيل", students: "أنس محمد عبد الرحمن ، مازن أشرف", school: "مدرسة منارة القاهرة للغات", administration: "إدارة شرق مدينة نصر", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "CHEM-02", title: "تصنيع طلاء عازل للحرارة من مخلفات قشور الأرز والسيليكا", students: "ندى طارق حسن", school: "مدرسة الزهراء للغات", administration: "إدارة شرق مدينة نصر", category: "CHEM - الكيمياء وعلوم المواد (Chemistry & Materials Science)" },
+            { code: "EGSD-04", title: "توربينة رياح رأسية مدمجة للعمل في المناطق الحضرية منخفضة الرياح", students: "إسلام مجدي السيد", school: "مدرسة عباس العقاد الثانوية بنين", administration: "إدارة شرق مدينة نصر", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "CBIO-03", title: "التنبؤ بالتفاعلات الدوائية الضارة باستخدام الشبكات العصبية البيانية", students: "رنا وليد فاروق", school: "مدرسة فيوتشر للغات", administration: "إدارة شرق مدينة نصر", category: "CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)" },
+            { code: "EBED-06", title: "نظام إنذار مبكر للسيول والانهيارات الأرضية بالاستشعار عن بُعد", students: "محمد عماد الدين ، علي مصطفى", school: "مدرسة الفتح الخاصة", administration: "إدارة شرق مدينة نصر", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "BEHA-04", title: "برنامج تأهيلي رقمي لتحسين مهارات التواصل لدى أطفال التوحد", students: "هاجر سامح محمود", school: "مدرسة الألسن الحديثة", administration: "إدارة شرق مدينة نصر", category: "BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)" },
+            { code: "PHYS-01", title: "تحسين كفاءة التبريد الإشعاعي السلبي للمباني في المناخ الحار", students: "عمر شريف عبد المنعم", school: "مدرسة بريتش كولومبيا", administration: "إدارة شرق مدينة نصر", category: "PHYS - الفيزياء والفلك (Physics and Astronomy)" },
+            { code: "SOFT-06", title: "منصة أمن سيبراني لاكتشاف هجمات التصيد الاحتيالي بالذكاء الاصطناعي", students: "ياسين هاني كمال ، مروان أحمد", school: "مدرسة القومية بالعباسية", administration: "إدارة غرب مدينة نصر", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "ENBM-02", title: "حاضنة أطفال مبتسرين ذكية مزودة بنظام تحكم تلقائي في الأكسجين", students: "آلاء محمد حسن", school: "مدرسة الشهيد رامي الجنجيهي", administration: "إدارة غرب مدينة نصر", category: "ENBM - الهندسة الطبية الحيوية (Biomedical Engineering)" },
+            { code: "ENEV-05", title: "إزالة المعادن الثقيلة من المياه الصناعية باستخدام الفحم الحيوي المعدل", students: "شهد خالد محمود ، يارا أيمن", school: "مدرسة مصطفى كامل الثانوية", administration: "إدارة غرب مدينة نصر", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "ROBO-08", title: "طائرة بدون طيار (Drone) لمكافحة حرائق الأبراج العالية", students: "أحمد عصام الدين", school: "مدرسة الشيخ زايد الرسمية المتميزة", administration: "إدارة غرب مدينة نصر", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "PLNT-02", title: "تحفيز إنبات البذور في الأراضي الصحراوية باستخدام البلازما الباردة", students: "مريم أشرف سعيد", school: "مدرسة السيدة عائشة الثانوية بنات", administration: "إدارة غرب مدينة نصر", category: "PLNT - علوم النبات والأحياء (Plant & Biological Sciences)" },
+            { code: "EBED-07", title: "صندوق دواء ذكي لكبار السن للتنبيه بالمواعيد ومراقبة الالتزام", students: "محمود إبراهيم علي ، حسن محمد", school: "مدرسة النصر الرسمية لغات", administration: "إدارة غرب مدينة نصر", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "MATH-01", title: "نموذج رياضي للتنبؤ بانتشار الأوبئة وتحسين توزيع اللقاحات", students: "نورين تامر عبد الله", school: "مدرسة الحديثة للغات", administration: "إدارة غرب مدينة نصر", category: "MATH - الرياضيات وعلوم البيانات (Mathematics & Data Science)" },
+            { code: "EGSD-05", title: "بطارية صديقة للبيئة قائمة على أيونات الزنك والمواد الكربونية", students: "بلال محمد فتحي", school: "مدرسة ابن النفيس الثانوية", administration: "إدارة غرب مدينة نصر", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "BMED-09", title: "جهاز تحليل نبرة الصوت للكشف المبكر عن اضطرابات الأحبال الصوتية", students: "جنى وليد سيد", school: "مدرسة رويال للغات", administration: "إدارة غرب مدينة نصر", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "SOFT-07", title: "نظام ذكي لتحسين مسارات سيارات جمع القمامة في الأحياء السكنية", students: "خالد مصطفى أحمد ، عمر طارق", school: "مدرسة السلام الثانوية بنين", administration: "إدارة السلام التعليمية", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "ENEV-06", title: "إنتاج طوب بناء خفيف وعازل من مخلفات الهدم والبلاستيك المعاد تدويره", students: "أسماء محمود إبراهيم", school: "مدرسة أم المؤمنين الثانوية بنات", administration: "إدارة السلام التعليمية", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "EBED-08", title: "جهاز مراقبة جودة الهواء الداخلي وتنقية الغبار الدقيق تلقائياً", students: "يوسف محمد سعيد", school: "مدرسة جمال عبد الناصر الثانوية", administration: "إدارة السلام التعليمية", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "ROBO-09", title: "روبوت إنقاذ للبحث عن المفقودين تحت الأنقاض بالموجات فوق الصوتية", students: "سيف أحمد حسن ، كريم عادل", school: "مدرسة النهضة الرسمية المتميزة", administration: "إدارة السلام التعليمية", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "CHEM-03", title: "استخلاص صبغات طبيعية آمنة من المخلفات الزراعية للصناعات الغذائية", students: "فاطمة الزهراء علي", school: "مدرسة العبور الثانوية بنات", administration: "إدارة السلام التعليمية", category: "CHEM - الكيمياء وعلوم المواد (Chemistry & Materials Science)" },
+            { code: "EGSD-06", title: "نظام تسخين وتبريد هجين يعمل بالطاقة الحرارية الأرضية والشمسية", students: "عبد الله سامي محمد", school: "مدرسة أحمد زويل الرسمية لغات", administration: "إدارة السلام التعليمية", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "BEHA-05", title: "تأثير الإضاءة الذكية على جودة النوم والتحصيل الدراسي لدى المراهقين", students: "رحمة هشام فؤاد", school: "مدرسة الحرية الخاصة", administration: "إدارة السلام التعليمية", category: "BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)" },
+            { code: "TMED-03", title: "ضمادة طبية ذكية يتغير لونها عند حدوث عدوى بكتيرية في الجروح", students: "منة محمد عبد العزيز", school: "مدرسة الشهيد مصطفى يسرى", administration: "إدارة السلام التعليمية", category: "TMED - العلوم الطبية الانتقالية (Translational Medical Science)" },
+            { code: "SOFT-08", title: "مساعد تعليمي تفاعلي بالواقع المعزز لتبسيط تجارب الكيمياء", students: "معاذ خالد إبراهيم ، أيمن حسن", school: "مدرسة عين شمس الثانوية بنين", administration: "إدارة عين شمس التعليمية", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "ENEV-07", title: "منظومة متكاملة لتحلية مياه البحر باستخدام التقطير الغشائي الشمسي", students: "دينا أشرف محمود", school: "مدرسة عين شمس الثانوية بنات", administration: "إدارة عين شمس التعليمية", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "ROBO-10", title: "كرسي متحرك ذكي يتم التحكم به عبر حركة العين والرأس لذوي الشلل الرباعي", students: "مصطفى طارق علي ، محمد رضا", school: "مدرسة أحمد عرابي الثانوية", administration: "إدارة عين شمس التعليمية", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "EBED-09", title: "نظام الكشف المبكر عن أعطال المحولات الكهربائية ومنع احتراقها", students: "أحمد جمال عبد الناصر", school: "مدرسة الحلمية الثانوية بنين", administration: "إدارة عين شمس التعليمية", category: "EBED - الأنظمة المدمجة (Embedded Systems)" },
+            { code: "BMED-10", title: "تطبيق تقييم التوازن الحركي للوقاية من السقوط لدى كبار السن", students: "سارة سيد محمود", school: "مدرسة ابن خلدون المتكاملة", administration: "إدارة عين شمس التعليمية", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ANIM-02", title: "نظام ذكي لمراقبة صحة الماشية والتنبؤ المبكر بالأمراض الوبائية", students: "حسام الدين وليد", school: "مدرسة المرج الثانوية بنين", administration: "إدارة المرج التعليمية", category: "ANIM - علوم الحيوان (Animal Sciences)" },
+            { code: "PLNT-03", title: "الزراعة المائية الذكية (Hydroponics) المدارة بالذكاء الاصطناعي", students: "إيمان محمد فتحي ، آية طارق", school: "مدرسة المرج الثانوية بنات", administration: "إدارة المرج التعليمية", category: "PLNT - علوم النبات والأحياء (Plant & Biological Sciences)" },
+            { code: "ENEV-08", title: "تحويل زيوت الطعام المستعملة إلى ديزل حيوي عالي الكفاءة", students: "محمود علاء حسين", school: "مدرسة مؤسسة الزكاة الثانوية", administration: "إدارة المرج التعليمية", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "EBED-10", title: "نظام أمان ذكي لحافلات المدارس لمنع نسيان الأطفال ومراقبة السرعة", students: "تسنيم أحمد كمال ، ملك هشام", school: "مدرسة الفاروق عمر الرسمية لغات", administration: "إدارة المرج التعليمية", category: "EBED - الأنظمة المدمجة (Embedded Systems)" }
+        ];
+
+        const DEFAULT_SECTOR_PROJECTS = [
+            { code: "ENBM-01", title: "طرف صناعي علوي منخفض التكلفة يعمل بالإشارات العضلية (EMG)", students: "عبد الرحمن خالد ، سيف الدين طارق", school: "مدرسة المتفوقين للعلوم والتكنولوجيا (STEM)", administration: "إدارة شرق مدينة نصر", category: "ENBM - الهندسة الطبية الحيوية (Biomedical Engineering)" },
+            { code: "SOFT-04", title: "مترجم فوري للغة الإشارة العربية باستخدام التعلم العميق", students: "أدهم شريف حسين ، نورهان وليد", school: "مدرسة الميرديديو", administration: "إدارة مصر الجديدة", category: "SOFT - برمجيات الأنظمة (Systems Software)" },
+            { code: "BMED-05", title: "بصير - نظام متكامل لمساعدة كبار السن والمكفوفين (BASEER)", students: "ياسين عبد الحي كمال", school: "طبري شيراتون الثانوية", administration: "إدارة النزهة", category: "BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)" },
+            { code: "ENEV-04", title: "استخلاص الهيدروجين الأخضر من مياه الصرف الصحي المعالجة", students: "يوسف علاء محمود ، أحمد إبراهيم", school: "مدرسة طلائع الكمال للغات", administration: "إدارة شرق مدينة نصر", category: "ENEV - الهندسة البيئية (Environmental Engineering)" },
+            { code: "ROBO-10", title: "كرسي متحرك ذكي يتم التحكم به عبر حركة العين والرأس", students: "مصطفى طارق علي ، محمد رضا", school: "مدرسة أحمد عرابي الثانوية", administration: "إدارة عين شمس التعليمية", category: "ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)" },
+            { code: "EGSD-01", title: "تنظيف الألواح الشمسية ذاتياً (Smart Solar Panel Cleaner)", students: "مايكل مجدي سعيد إسحق", school: "طبري شيراتون الثانوية", administration: "إدارة النزهة", category: "EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)" },
+            { code: "TMED-02", title: "تطوير لاصقة جلدية ذكية لقياس مستوى الجلوكوز بدون وخز", students: "دانة علاء الدين", school: "مدرسة القلب المقدس", administration: "إدارة مصر الجديدة", category: "TMED - العلوم الطبية الانتقالية (Translational Medical Science)" },
+            { code: "CBIO-03", title: "التنبؤ بالتفاعلات الدوائية الضارة باستخدام الشبكات العصبية البيانية", students: "رنا وليد فاروق", school: "مدرسة فيوتشر للغات", administration: "إدارة شرق مدينة نصر", category: "CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)" },
+            { code: "EBED-01", title: "بوابة جراج ذكية (Smart Parking Gate)", students: "جنى أحمد محمد منصور", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" }
+        ];
+
+        // ==========================================
+        // 2. APPLICATION STATE & STORAGE KEYS
+        // ==========================================
+        const STAGE_KEY = 'local';
+
+        const LS_KEYS = {
+            PROJECTS: 'isef_east_cairo_projects_75_v3',
+            EVALUATIONS: 'isef_east_cairo_evals_v3',
+            JUDGE: 'isef_east_cairo_active_judge_v3',
+            LOGO: 'isef_east_cairo_logo_v3',
+            SHEETS_URL: 'isef_east_cairo_sheets_webhook_v3'
+        };
+
+        let state = {
+            projects: {
+                local: [...DEFAULT_LOCAL_PROJECTS]
+            },
+            evaluations: [],
+            currentJudge: null,
+            selectedProjectCode: null,
+            adminStage: STAGE_KEY,
+            customLogo: null,
+            sheetsWebhookUrl: ''
+        };
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'isef-east-cairo-2026';
+
+        // ==========================================
+        // 3. INITIALIZATION & CLOUD SYNC (FIREBASE)
+        // ==========================================
+        async function initApp() {
+            loadFromLocalStorage();
+            updateCountsUI();
+            populateCategoryDropdowns();
+
+            if (state.currentJudge && state.currentJudge.name && state.currentJudge.phone && state.currentJudge.specialty) {
+                enterJudgeWorkspace();
+            }
+
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user) {
+                            setupFirestoreListeners();
+                            updateSyncBadge(true);
+                        }
+                    });
+                } else {
+                    updateSyncBadge(false);
+                }
+            } catch (err) {
+                console.warn("Firebase offline mode active:", err);
+                updateSyncBadge(false);
+            }
+        }
+
+        function updateSyncBadge(isCloud) {
+            const badge = document.getElementById('sync-badge');
+            if (!badge) return;
+            if (isCloud) {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> مزامنة سحابية`;
+            } else {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> حفظ محلي فوري`;
+            }
+        }
+
+        function setupFirestoreListeners() {
+            if (!db || !currentUser) return;
+
+            const evalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'evaluations');
+            onSnapshot(evalsCol, (snapshot) => {
+                const cloudEvals = [];
+                snapshot.forEach(docSnap => {
+                    cloudEvals.push(docSnap.data());
+                });
+                if (cloudEvals.length > 0) {
+                    const mergedMap = new Map();
+                    state.evaluations.forEach(e => mergedMap.set(e.id, e));
+                    cloudEvals.forEach(e => mergedMap.set(e.id, e));
+                    state.evaluations = Array.from(mergedMap.values());
+                    saveToLocalStorage();
+                    refreshAllViews();
+                }
+            }, (error) => {
+                console.error("Firestore evaluations sync error:", error);
+            });
+
+            const projectsDoc = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'projects_sheet');
+            onSnapshot(projectsDoc, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (Array.isArray(data.local) && data.local.length > 0) {
+                        state.projects = { local: data.local };
+                        saveToLocalStorage();
+                        updateCountsUI();
+                        populateCategoryDropdowns();
+                        refreshAllViews();
+                    }
+                }
+            }, (error) => {
+                console.error("Firestore projects sync error:", error);
+            });
+
+            const logoDoc = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sector_logo');
+            onSnapshot(logoDoc, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.logoDataUrl) {
+                        state.customLogo = data.logoDataUrl;
+                        applyLogoToUI(data.logoDataUrl);
+                        try { localStorage.setItem(LS_KEYS.LOGO, data.logoDataUrl); } catch (e) {}
+                    }
+                }
+            }, (error) => {
+                console.error("Firestore logo sync error:", error);
+            });
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedProjects = localStorage.getItem(LS_KEYS.PROJECTS);
+                if (savedProjects) {
+                    const parsed = JSON.parse(savedProjects);
+                    if (Array.isArray(parsed.local) && parsed.local.length > 0) {
+                        state.projects = { local: parsed.local };
+                    }
+                }
+                const savedEvals = localStorage.getItem(LS_KEYS.EVALUATIONS);
+                if (savedEvals) {
+                    state.evaluations = JSON.parse(savedEvals);
+                }
+                const savedJudge = localStorage.getItem(LS_KEYS.JUDGE);
+                if (savedJudge) {
+                    state.currentJudge = JSON.parse(savedJudge);
+                }
+                const savedLogo = localStorage.getItem(LS_KEYS.LOGO);
+                if (savedLogo) {
+                    state.customLogo = savedLogo;
+                    applyLogoToUI(savedLogo);
+                }
+                const savedWebhook = localStorage.getItem(LS_KEYS.SHEETS_URL);
+                if (savedWebhook) {
+                    state.sheetsWebhookUrl = savedWebhook;
+                }
+            } catch (e) {
+                console.error("Error reading LocalStorage:", e);
+            }
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem(LS_KEYS.PROJECTS, JSON.stringify({ local: state.projects.local }));
+                localStorage.setItem(LS_KEYS.EVALUATIONS, JSON.stringify(state.evaluations));
+                if (state.currentJudge) {
+                    localStorage.setItem(LS_KEYS.JUDGE, JSON.stringify(state.currentJudge));
+                } else {
+                    localStorage.removeItem(LS_KEYS.JUDGE);
+                }
+            } catch (e) {
+                console.error("Error saving to LocalStorage:", e);
+            }
+        }
+
+        async function saveEvaluationToCloud(evalObj) {
+            if (!db || !currentUser) return;
+            try {
+                const evalRef = doc(db, 'artifacts', appId, 'public', 'data', 'evaluations', evalObj.id);
+                await setDoc(evalRef, evalObj);
+            } catch (e) {
+                console.error("Cloud save failed, kept in LocalStorage:", e);
+            }
+        }
+
+        async function saveProjectsToCloud() {
+            if (!db || !currentUser) return;
+            try {
+                const projectsRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'projects_sheet');
+                await setDoc(projectsRef, {
+                    local: state.projects.local,
+                    updatedAt: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Cloud projects sync failed:", e);
+            }
+        }
+
+        // ==========================================
+        // LOGO UPLOAD, DISPLAY & SYNC
+        // ==========================================
+        function applyLogoToUI(dataUrl) {
+            const imgEl = document.getElementById('custom-sector-logo-img');
+            const loginImgEl = document.getElementById('login-sector-logo-img');
+            const svgEl = document.getElementById('default-sector-svg');
+            const loginSvgEl = document.getElementById('login-sector-svg');
+            if (dataUrl) {
+                if (imgEl) { imgEl.src = dataUrl; imgEl.classList.remove('hidden'); }
+                if (loginImgEl) { loginImgEl.src = dataUrl; loginImgEl.classList.remove('hidden'); }
+                if (svgEl) svgEl.classList.add('hidden');
+                if (loginSvgEl) loginSvgEl.classList.add('hidden');
+            }
+        }
+
+        window.handleLogoUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 300;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    const compressedDataUrl = canvas.toDataURL('image/png', 0.9);
+                    state.customLogo = compressedDataUrl;
+                    applyLogoToUI(compressedDataUrl);
+
+                    try {
+                        localStorage.setItem(LS_KEYS.LOGO, compressedDataUrl);
+                    } catch (err) {
+                        console.warn("LocalStorage logo save warning:", err);
+                    }
+
+                    if (db && currentUser) {
+                        try {
+                            const logoRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sector_logo');
+                            await setDoc(logoRef, {
+                                logoDataUrl: compressedDataUrl,
+                                updatedAt: new Date().toISOString()
+                            });
+                        } catch (err) {
+                            console.warn("Cloud logo sync warning:", err);
+                        }
+                    }
+                    showToast("تم تحديث وحفظ شعار معرض قطاع شرق القاهرة بنجاح", "success");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = "";
+        };
+
+        // ==========================================
+        // 4. JUDGE LOGIN & NAVIGATION (NAME, SPECIALTY, MOBILE ONLY)
+        // ==========================================
+        window.handleJudgeLogin = function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+
+            const nameInput = document.getElementById('judge-name');
+            const specialtyInput = document.getElementById('judge-specialty');
+            const phoneInput = document.getElementById('judge-phone');
+
+            const name = nameInput ? nameInput.value.trim() : '';
+            const specialty = specialtyInput ? specialtyInput.value.trim() : '';
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+
+            if (!name || !specialty || !phone) {
+                showToast("يرجى إدخال اسم المحكم، التخصص، ورقم الموبايل أولاً", "error");
+                return;
+            }
+
+            const normalizedId = `${name.replace(/\s+/g, '_').toLowerCase()}_${phone.replace(/\D+/g, '') || 'judge'}`;
+
+            state.currentJudge = {
+                id: normalizedId,
+                name,
+                specialty,
+                phone,
+                stage: STAGE_KEY
+            };
+            state.selectedProjectCode = null;
+            saveToLocalStorage();
+            enterJudgeWorkspace();
+            showToast(`أهلاً بك ${name} — بدء تحكيم 75 مشروع`, "success");
+        };
+
+        function enterJudgeWorkspace() {
+            const j = state.currentJudge;
+            if (!j || !j.name || !j.phone || !j.specialty) return;
+
+            j.stage = STAGE_KEY;
+
+            const loginScreen = document.getElementById('judge-login-screen');
+            const workspaceScreen = document.getElementById('judge-workspace');
+            if (loginScreen) loginScreen.classList.add('hidden');
+            if (workspaceScreen) workspaceScreen.classList.remove('hidden');
+
+            const pill = document.getElementById('active-judge-pill');
+            if (pill) {
+                pill.classList.remove('hidden');
+                pill.classList.add('flex');
+            }
+            const headerName = document.getElementById('header-judge-name');
+            if (headerName) headerName.textContent = j.name;
+
+            const wsName = document.getElementById('ws-judge-name');
+            const wsMeta = document.getElementById('ws-judge-meta');
+            if (wsName) wsName.textContent = j.name;
+            if (wsMeta) wsMeta.textContent = `التخصص: ${j.specialty} — موبايل: ${j.phone}`;
+
+            populateCategoryDropdowns();
+            updateJudgeEvaluatedCounter();
+            filterProjectsList();
+
+            const noProj = document.getElementById('no-project-selected');
+            const evalForm = document.getElementById('evaluation-form-container');
+            if (noProj) noProj.classList.remove('hidden');
+            if (evalForm) evalForm.classList.add('hidden');
+        }
+
+        window.logoutJudge = function() {
+            state.currentJudge = null;
+            state.selectedProjectCode = null;
+            saveToLocalStorage();
+            document.getElementById('judge-workspace').classList.add('hidden');
+            document.getElementById('judge-login-screen').classList.remove('hidden');
+            document.getElementById('active-judge-pill').classList.add('hidden');
+            document.getElementById('active-judge-pill').classList.remove('flex');
+        };
+
+        window.switchMainView = function(view) {
+            const judgeView = document.getElementById('view-judge');
+            const adminView = document.getElementById('view-admin');
+            const navJudge = document.getElementById('nav-judge');
+            const navAdmin = document.getElementById('nav-admin');
+
+            if (view === 'judge') {
+                judgeView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow";
+                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10";
+                if (state.currentJudge) {
+                    enterJudgeWorkspace();
+                } else {
+                    document.getElementById('judge-login-screen').classList.remove('hidden');
+                    document.getElementById('judge-workspace').classList.add('hidden');
+                }
+            } else {
+                judgeView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow";
+                navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10";
+                renderAdminDashboard();
+            }
+        };
+
+        function updateJudgeEvaluatedCounter() {
+            if (!state.currentJudge) return;
+            const count = state.evaluations.filter(ev => ev.judgeId === state.currentJudge.id).length;
+            const el = document.getElementById('ws-evaluated-count');
+            if (el) el.textContent = count;
+        }
+
+        // ==========================================
+        // 5. PROJECT SEARCH, SELECTION & SCORING (75 PROJECTS)
+        // ==========================================
+        function populateCategoryDropdowns() {
+            const allProjects = state.projects.local || [];
+            const categories = [...new Set(allProjects.map(p => p.category).filter(Boolean))].sort();
+
+            const judgeSelect = document.getElementById('category-filter-select');
+            const adminSelect = document.getElementById('admin-category-filter');
+
+            const optionsHtml = `<option value="ALL">جميع الفئات العلمية (${categories.length})</option>` +
+                categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+
+            if (judgeSelect) judgeSelect.innerHTML = optionsHtml;
+            if (adminSelect) adminSelect.innerHTML = optionsHtml;
+        }
+
+        window.filterProjectsList = function() {
+            const projectsList = state.projects.local || [];
+            const searchInput = document.getElementById('project-search-input');
+            const catSelect = document.getElementById('category-filter-select');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const selectedCat = catSelect ? catSelect.value : 'ALL';
+
+            const totalEl = document.getElementById('stage-projects-total');
+            if (totalEl) totalEl.textContent = `${projectsList.length} مشروع`;
+
+            const filtered = projectsList.filter(p => {
+                const matchesCat = selectedCat === 'ALL' || p.category === selectedCat;
+                const matchesQuery = !query ||
+                    p.code.toLowerCase().includes(query) ||
+                    p.title.toLowerCase().includes(query) ||
+                    p.students.toLowerCase().includes(query) ||
+                    p.school.toLowerCase().includes(query) ||
+                    (p.administration && p.administration.toLowerCase().includes(query)) ||
+                    p.category.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            const exactMatch = projectsList.find(p => p.code.toLowerCase() === query);
+            if (exactMatch && state.selectedProjectCode !== exactMatch.code) {
+                selectProjectForJudging(exactMatch.code);
+            }
+
+            const container = document.getElementById('projects-quick-list');
+            if (!container) return;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">لا توجد مشاريع مطابقة للبحث</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const existingEval = state.currentJudge
+                    ? state.evaluations.find(ev => ev.judgeId === state.currentJudge.id && ev.projectCode === p.code)
+                    : null;
+                const isSelected = state.selectedProjectCode === p.code;
+
+                return `
+                    <button type="button" onclick="selectProjectForJudging('${p.code}')"
+                        class="w-full text-right p-3 rounded-xl border transition flex flex-col gap-1.5 cursor-pointer ${
+                            isSelected
+                                ? 'bg-isef-50 border-isef-500 ring-1 ring-isef-500 shadow-sm'
+                                : 'bg-white border-slate-200 hover:border-isef-300 hover:bg-slate-50'
+                        }">
+                        <div class="flex items-center justify-between gap-2 w-full">
+                            <span class="font-mono text-xs font-extrabold px-2 py-0.5 rounded ${
+                                isSelected ? 'bg-isef-700 text-white' : 'bg-slate-800 text-amber-300'
+                            }">${p.code}</span>
+                            ${
+                                existingEval
+                                    ? `<span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <i class="fas fa-check-circle"></i> ${existingEval.totalScore}/100
+                                       </span>`
+                                    : `<span class="text-[11px] text-slate-400 font-semibold">لم يُقيّم</span>`
+                            }
+                        </div>
+                        <div class="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">${p.title}</div>
+                        <div class="text-[11px] text-slate-500 truncate">${p.students}</div>
+                    </button>
+                `;
+            }).join('');
+        };
+
+        window.selectProjectForJudging = function(projectCode) {
+            if (!state.currentJudge) {
+                showToast("يرجى إدخال بيانات المحكم أولاً", "error");
+                return;
+            }
+            const project = (state.projects.local || []).find(p => p.code === projectCode);
+            if (!project) return;
+
+            state.selectedProjectCode = projectCode;
+            filterProjectsList();
+
+            document.getElementById('no-project-selected').classList.add('hidden');
+            document.getElementById('evaluation-form-container').classList.remove('hidden');
+
+            document.getElementById('card-project-code').textContent = project.code;
+            document.getElementById('card-project-category').textContent = project.category;
+            document.getElementById('card-project-title').textContent = project.title;
+            document.getElementById('card-project-students').textContent = project.students;
+            document.getElementById('card-project-school').textContent = project.administration
+                ? `${project.school} — ${project.administration}`
+                : project.school;
+
+            const existingEval = state.evaluations.find(
+                ev => ev.judgeId === state.currentJudge.id && ev.projectCode === projectCode
+            );
+
+            const statusBadge = document.getElementById('card-eval-status');
+            const submitText = document.getElementById('submit-eval-text');
+
+            if (existingEval) {
+                statusBadge.textContent = `تم التقييم مسبقاً (${existingEval.totalScore}/100) — وضع التعديل`;
+                statusBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30";
+                submitText.textContent = "تحديث الدرجة المحفوظة";
+                setRubricValues(existingEval.scores, existingEval.notes || '');
+            } else {
+                statusBadge.textContent = "تقييم جديد";
+                statusBadge.className = "text-xs font-bold px-3 py-1 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30";
+                submitText.textContent = "اعتماد وحفظ التقييم";
+                resetRubricForm();
+            }
+        };
+
+        function setRubricValues(scores, notes) {
+            ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(key => {
+                const val = scores[key] || 0;
+                document.getElementById(`score-${key}`).value = val;
+                document.getElementById(`range-${key}`).value = val;
+            });
+            document.getElementById('judge-notes').value = notes;
+            recalculateTotalScore();
+        }
+
+        window.resetRubricForm = function() {
+            setRubricValues({ c1: 0, c2: 0, c3: 0, c4: 0, c5: 0 }, '');
+        };
+
+        window.syncScoreRange = function(criterion, value) {
+            document.getElementById(`score-${criterion}`).value = value;
+            recalculateTotalScore();
+        };
+
+        window.syncScoreInput = function(criterion, value) {
+            const maxMap = { c1: 10, c2: 15, c3: 20, c4: 20, c5: 35 };
+            let num = parseFloat(value);
+            if (isNaN(num) || num < 0) num = 0;
+            if (num > maxMap[criterion]) {
+                num = maxMap[criterion];
+                document.getElementById(`score-${criterion}`).value = num;
+            }
+            document.getElementById(`range-${criterion}`).value = num;
+            recalculateTotalScore();
+        };
+
+        function recalculateTotalScore() {
+            const c1 = parseFloat(document.getElementById('score-c1').value) || 0;
+            const c2 = parseFloat(document.getElementById('score-c2').value) || 0;
+            const c3 = parseFloat(document.getElementById('score-c3').value) || 0;
+            const c4 = parseFloat(document.getElementById('score-c4').value) || 0;
+            const c5 = parseFloat(document.getElementById('score-c5').value) || 0;
+            const total = Math.round((c1 + c2 + c3 + c4 + c5) * 10) / 10;
+            document.getElementById('total-score-display').textContent = total;
+            return { c1, c2, c3, c4, c5, total };
+        }
+
+        window.submitEvaluation = async function(e) {
+            e.preventDefault();
+            if (!state.currentJudge || !state.selectedProjectCode) return;
+
+            const project = (state.projects.local || []).find(p => p.code === state.selectedProjectCode);
+            if (!project) return;
+
+            const { c1, c2, c3, c4, c5, total } = recalculateTotalScore();
+            const notes = document.getElementById('judge-notes').value.trim();
+
+            const evalId = `${STAGE_KEY}_${project.code}_${state.currentJudge.id}`;
+
+            const evalRecord = {
+                id: evalId,
+                stage: STAGE_KEY,
+                projectCode: project.code,
+                projectTitle: project.title,
+                projectCategory: project.category,
+                judgeId: state.currentJudge.id,
+                judgeName: state.currentJudge.name,
+                judgePhone: state.currentJudge.phone,
+                judgeSpecialty: state.currentJudge.specialty,
+                scores: { c1, c2, c3, c4, c5 },
+                totalScore: total,
+                notes,
+                timestamp: new Date().toISOString()
+            };
+
+            const idx = state.evaluations.findIndex(ev => ev.id === evalId);
+            if (idx > -1) {
+                state.evaluations[idx] = evalRecord;
+            } else {
+                state.evaluations.push(evalRecord);
+            }
+
+            saveToLocalStorage();
+            await saveEvaluationToCloud(evalRecord);
+            await sendEvaluationToGoogleSheet(evalRecord);
+
+            updateJudgeEvaluatedCounter();
+            selectProjectForJudging(project.code);
+            showToast(`تم حفظ تقييم المشروع ${project.code} بنجاح (${total}/100)`, "success");
+        };
+
+        async function sendEvaluationToGoogleSheet(evalRecord) {
+            if (!state.sheetsWebhookUrl) return;
+            try {
+                await fetch(state.sheetsWebhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(evalRecord)
+                });
+            } catch (err) {
+                console.warn("Google Sheets webhook send error:", err);
+            }
+        }
+
+        // ==========================================
+        // QR CODE & GOOGLE SHEETS LINKING MODAL
+        // ==========================================
+        window.openQrAndSheetsModal = function() {
+            const currentUrl = window.location.href;
+            const isLocalBlob = currentUrl.startsWith('blob:') || currentUrl.startsWith('about:') || currentUrl.startsWith('data:') || currentUrl.startsWith('file:');
+
+            document.getElementById('modal-title').textContent = "رمز QR للمحكمين وربط شيت النتائج التلقائي";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-5">
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fas fa-qrcode text-isef-600"></i>
+                                <span>1. رمز QR لفتح المنصة على موبايلات الحكام</span>
+                            </h4>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-isef-100 text-isef-800">جاهز للمسح</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div id="qrcode-canvas-box" class="bg-white p-3 rounded-xl border-2 border-amber-400 shadow-sm shrink-0"></div>
+                            <div class="space-y-2 flex-1 w-full">
+                                <label class="block text-xs font-bold text-slate-600">رابط المنصة المربوط بالـ QR (يمكنك تعديله بعد الرفع):</label>
+                                <div class="flex gap-1.5">
+                                    <input type="text" id="qr-target-url" value="${isLocalBlob ? 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/' : currentUrl}" oninput="regenerateQrCode(this.value)"
+                                        placeholder="الصق رابط الاستضافة هنا..."
+                                        class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono text-left" dir="ltr">
+                                    <button type="button" onclick="copyQrLink()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shrink-0">
+                                        نسخ
+                                    </button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 pt-1">
+                                    <button type="button" onclick="downloadQrCodePng()" class="px-3 py-1.5 bg-isef-700 hover:bg-isef-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
+                                        <i class="fas fa-download"></i> تحميل صورة QR للطباعة
+                                    </button>
+                                    <button type="button" onclick="downloadStandaloneHtml()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-extrabold flex items-center gap-1.5">
+                                        <i class="fas fa-file-code"></i> تحميل ملف index.html
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-extrabold text-emerald-950 text-sm flex items-center gap-2">
+                                <i class="fas fa-table text-emerald-600"></i>
+                                <span>2. ربط الدرجات تلقائياً بشيت النتائج (Google Sheets / Excel)</span>
+                            </h4>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${state.sheetsWebhookUrl ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                                ${state.sheetsWebhookUrl ? 'مربوط ونشط' : 'تصدير Excel مباشر'}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600">
+                            جميع تقييمات المحكمين تُحفظ وتُجمع تلقائياً داخل تبويب <strong>"لوحة النتائج والبيانات"</strong> ويمكنك تصديرها بضغطة زر إلى <strong>Excel</strong>، أو لصق رابط <strong>Google Apps Script Web App</strong> هنا لإرسال كل تقييم فور اعتماده إلى شيت Google مباشرة:
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="url" id="sheets-webhook-input" value="${state.sheetsWebhookUrl || ''}"
+                                placeholder="https://script.google.com/macros/s/...../exec"
+                                class="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono text-left" dir="ltr">
+                            <button type="button" onclick="saveSheetsWebhook()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0">
+                                حفظ الربط
+                            </button>
+                            <button type="button" onclick="syncAllExistingToSheets()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shrink-0">
+                                مزامنة الكل الآن
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const initialQrText = isLocalBlob ? 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/' : currentUrl;
+            regenerateQrCode(initialQrText);
+        };
+
+        window.regenerateQrCode = function(urlText) {
+            const box = document.getElementById('qrcode-canvas-box');
+            if (!box) return;
+            box.innerHTML = '';
+            const textToEncode = (urlText && urlText.trim()) ? urlText.trim() : 'https://abdelrazkzakria1975-crypto.github.io/sef-east-cairo/';
+            new QRCode(box, {
+                text: textToEncode,
+                width: 140,
+                height: 140,
+                colorDark: "#082f49",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        };
+
+        window.downloadQrCodePng = function() {
+            const canvas = document.querySelector('#qrcode-canvas-box canvas');
+            const img = document.querySelector('#qrcode-canvas-box img');
+            let dataUrl = '';
+            if (canvas) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else if (img && img.src) {
+                dataUrl = img.src;
+            }
+            if (!dataUrl) {
+                showToast("تعذر استخراج صورة QR", "error");
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'QR_تحكيم_معرض_قطاع_شرق_القاهرة_ISEF.png';
+            a.click();
+            showToast("تم تحميل صورة الـ QR Code بنجاح", "success");
+        };
+
+        window.copyQrLink = function() {
+            const input = document.getElementById('qr-target-url');
+            if (!input || !input.value.trim()) {
+                showToast("يرجى كتابة أو لصق الرابط أولاً", "error");
+                return;
+            }
+            input.select();
+            document.execCommand('copy');
+            showToast("تم نسخ رابط المنصة بنجاح", "success");
+        };
+
+        window.downloadStandaloneHtml = function() {
+            const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("تم تنزيل ملف index.html الجاهز للرفع", "success");
+        };
+
+        window.saveSheetsWebhook = function() {
+            const val = document.getElementById('sheets-webhook-input').value.trim();
+            state.sheetsWebhookUrl = val;
+            try {
+                if (val) localStorage.setItem(LS_KEYS.SHEETS_URL, val);
+                else localStorage.removeItem(LS_KEYS.SHEETS_URL);
+            } catch (e) {}
+            showToast(val ? "تم تفعيل الربط التلقائي مع Google Sheets بنجاح" : "تم إلغاء رابط Google Sheets", "success");
+        };
+
+        window.syncAllExistingToSheets = async function() {
+            if (!state.sheetsWebhookUrl) {
+                showToast("أدخل رابط Google Apps Script Web App أولاً", "error");
+                return;
+            }
+            if (state.evaluations.length === 0) {
+                showToast("لا توجد تقييمات مسجلة حالياً لإرسالها", "info");
+                return;
+            }
+            for (const ev of state.evaluations) {
+                await sendEvaluationToGoogleSheet(ev);
+            }
+            showToast(`تمت مزامنة ${state.evaluations.length} تقييم مع شيت النتائج بنجاح`, "success");
+        };
+
+        // ==========================================
+        // 6. ADMIN DASHBOARD & LEADERBOARD (75 PROJECTS)
+        // ==========================================
+        function updateCountsUI() {
+            const totalCount = (state.projects.local || []).length;
+            const badgeEl = document.getElementById('badge-local-count');
+            const kpiEl = document.getElementById('kpi-total-projects');
+            if (badgeEl) badgeEl.textContent = totalCount;
+            if (kpiEl) kpiEl.textContent = totalCount;
+        }
+
+        function computeProjectStats() {
+            const projects = state.projects.local || [];
+            const stageEvals = state.evaluations || [];
+
+            return projects.map(proj => {
+                const projEvals = stageEvals.filter(ev => ev.projectCode === proj.code);
+                const judgesCount = projEvals.length;
+                const avgScore = judgesCount > 0
+                    ? Math.round((projEvals.reduce((sum, e) => sum + e.totalScore, 0) / judgesCount) * 100) / 100
+                    : 0;
+
+                return {
+                    ...proj,
+                    judgesCount,
+                    avgScore,
+                    evaluations: projEvals
+                };
+            });
+        }
+
+        function renderAdminDashboard() {
+            updateCountsUI();
+
+            document.getElementById('kpi-total-evals').textContent = state.evaluations.length;
+            const uniqueJudges = new Set(state.evaluations.map(e => e.judgeId));
+            document.getElementById('kpi-total-judges').textContent = uniqueJudges.size;
+
+            const currentStats = computeProjectStats();
+            const evaluatedProjects = currentStats.filter(p => p.judgesCount > 0);
+            if (evaluatedProjects.length > 0) {
+                const maxAvg = Math.max(...evaluatedProjects.map(p => p.avgScore));
+                document.getElementById('kpi-highest-avg').textContent = `${maxAvg}/100`;
+            } else {
+                document.getElementById('kpi-highest-avg').textContent = "-";
+            }
+
+            renderAdminTable();
+        }
+
+        window.renderAdminTable = function() {
+            const query = document.getElementById('admin-search-input').value.trim().toLowerCase();
+            const catFilter = document.getElementById('admin-category-filter').value;
+            const sortBy = document.getElementById('admin-sort-select').value;
+
+            let data = computeProjectStats();
+
+            data = data.filter(item => {
+                const matchesCat = catFilter === 'ALL' || item.category === catFilter;
+                const matchesQuery = !query ||
+                    item.code.toLowerCase().includes(query) ||
+                    item.title.toLowerCase().includes(query) ||
+                    item.students.toLowerCase().includes(query) ||
+                    item.school.toLowerCase().includes(query) ||
+                    (item.administration && item.administration.toLowerCase().includes(query)) ||
+                    item.category.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            if (sortBy === 'SCORE_DESC') {
+                data.sort((a, b) => b.avgScore - a.avgScore || b.judgesCount - a.judgesCount);
+            } else if (sortBy === 'CODE_ASC') {
+                data.sort((a, b) => a.code.localeCompare(b.code));
+            } else if (sortBy === 'JUDGES_DESC') {
+                data.sort((a, b) => b.judgesCount - a.judgesCount || b.avgScore - a.avgScore);
+            }
+
+            const tbody = document.getElementById('admin-results-tbody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">لا توجد بيانات مطابقة</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((row, index) => {
+                const rankBadge = row.judgesCount > 0
+                    ? (index === 0 ? '🥇 1' : index === 1 ? '🥈 2' : index === 2 ? '🥉 3' : `#${index + 1}`)
+                    : '-';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3.5 px-4 text-center font-extrabold text-slate-700">${rankBadge}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-mono text-xs font-extrabold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200">${row.code}</span>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-slate-900 max-w-xs">${row.title}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-600">${row.category}</td>
+                        <td class="py-3.5 px-4">
+                            <div class="font-semibold text-slate-800 text-xs">${row.students}</div>
+                            <div class="text-[11px] text-slate-400">${row.school}${row.administration ? ' • ' + row.administration : ''}</div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                row.judgesCount > 0 ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-400'
+                            }">
+                                <i class="fas fa-user-tie text-[10px]"></i> ${row.judgesCount}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            ${
+                                row.judgesCount > 0
+                                    ? `<span class="font-black text-base text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">${row.avgScore}</span>`
+                                    : `<span class="text-xs text-slate-400">بانتظار التحكيم</span>`
+                            }
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <button type="button" onclick="openProjectDetailsModal('${row.code}')" class="px-3 py-1.5 bg-isef-50 hover:bg-isef-100 text-isef-700 rounded-lg text-xs font-bold transition cursor-pointer">
+                                عرض التقييمات
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.openProjectDetailsModal = function(projectCode) {
+            const stats = computeProjectStats();
+            const project = stats.find(p => p.code === projectCode);
+            if (!project) return;
+
+            document.getElementById('modal-title').textContent = `تفاصيل تحكيم: ${project.code} — ${project.title}`;
+
+            let bodyHtml = `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 space-y-1">
+                    <div class="text-xs text-slate-500"><strong>الطلاب:</strong> ${project.students}</div>
+                    <div class="text-xs text-slate-500"><strong>المدرسة:</strong> ${project.school}</div>
+                    <div class="text-xs text-slate-500"><strong>الفئة:</strong> ${project.category}</div>
+                    <div class="pt-2 flex items-center gap-4">
+                        <span class="text-xs font-bold text-isef-700">عدد المحكمين: ${project.judgesCount}</span>
+                        <span class="text-xs font-bold text-emerald-700">المتوسط العام: ${project.avgScore} / 100</span>
+                    </div>
+                </div>
+            `;
+
+            if (project.evaluations.length === 0) {
+                bodyHtml += `<div class="text-center py-8 text-slate-400">لم يتم تسجيل أي تقييم لهذا المشروع حتى الآن.</div>`;
+            } else {
+                bodyHtml += `<div class="space-y-3">` + project.evaluations.map(ev => `
+                    <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-2">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div>
+                                <div class="font-bold text-slate-800">${ev.judgeName}</div>
+                                <div class="text-[11px] text-slate-400">${ev.judgeSpecialty} — موبايل: ${ev.judgePhone || '—'}</div>
+                            </div>
+                            <div class="text-lg font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">${ev.totalScore} / 100</div>
+                        </div>
+                        <div class="grid grid-cols-5 gap-1 text-center text-[11px] bg-slate-50 p-2 rounded-lg">
+                            <div><span class="block text-slate-400">سؤال البحث</span><strong>${ev.scores.c1}/10</strong></div>
+                            <div><span class="block text-slate-400">المنهجية</span><strong>${ev.scores.c2}/15</strong></div>
+                            <div><span class="block text-slate-400">التنفيذ</span><strong>${ev.scores.c3}/20</strong></div>
+                            <div><span class="block text-slate-400">الإبداع</span><strong>${ev.scores.c4}/20</strong></div>
+                            <div><span class="block text-slate-400">العرض</span><strong>${ev.scores.c5}/35</strong></div>
+                        </div>
+                        ${ev.notes ? `<div class="text-xs text-slate-600 bg-amber-50/60 p-2.5 rounded-lg border border-amber-100"><strong>ملاحظات:</strong> ${ev.notes}</div>` : ''}
+                    </div>
+                `).join('') + `</div>`;
+            }
+
+            document.getElementById('modal-body').innerHTML = bodyHtml;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeModal = function() {
+            const modal = document.getElementById('custom-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        // ==========================================
+        // 7. EXCEL (SHEETJS) IMPORT & EXPORT (75 PROJECTS)
+        // ==========================================
+        window.handleExcelUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const ws = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+                    const importedLocal = jsonRows.map(row => {
+                        const code = String(row['الكود'] || row['كود المشروع'] || row['Code'] || row['code'] || '').trim();
+                        const title = String(row['اسم المشروع'] || row['المشروع'] || row['Title'] || row['title'] || '').trim();
+                        const students = String(row['الطلاب'] || row['أسماء الطلاب'] || row['اسم الطالب'] || row['Students'] || '').trim();
+                        const school = String(row['المدرسة'] || row['School'] || '').trim();
+                        const administration = String(row['الإدارة'] || row['الإدارة التعليمية'] || row['Administration'] || '').trim();
+                        const category = String(row['الفئة'] || row['الفئة العلمية'] || row['Category'] || '').trim();
+                        return { code, title, students, school, administration, category };
+                    }).filter(item => item.code && item.title);
+
+                    if (importedLocal.length === 0) {
+                        showToast("لم يتم العثور على أعمدة صالحة (الكود، اسم المشروع، الطلاب، المدرسة، الفئة)", "error");
+                        return;
+                    }
+
+                    state.projects = { local: importedLocal };
+
+                    saveToLocalStorage();
+                    await saveProjectsToCloud();
+                    populateCategoryDropdowns();
+                    renderAdminDashboard();
+                    if (state.currentJudge) filterProjectsList();
+
+                    showToast(`تم استيراد ${state.projects.local.length} مشروع بنجاح`, "success");
+                } catch (err) {
+                    console.error("Excel parse error:", err);
+                    showToast("حدث خطأ أثناء قراءة ملف Excel. تأكد من سلامة الملف.", "error");
+                } finally {
+                    event.target.value = "";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.downloadTemplateExcel = function() {
+            const wb = XLSX.utils.book_new();
+            const headers = [["الكود", "اسم المشروع", "الطلاب", "المدرسة", "الإدارة التعليمية", "الفئة"]];
+            const localData = headers.concat((state.projects.local || []).map(p => [p.code, p.title, p.students, p.school, p.administration || "", p.category]));
+            const wsLocal = XLSX.utils.aoa_to_sheet(localData);
+            wsLocal['!views'] = [{ rightToLeft: true }];
+            XLSX.utils.book_append_sheet(wb, wsLocal, "75 مشروع قطاع شرق");
+            XLSX.writeFile(wb, "نموذج_75_مشروع_معرض_قطاع_شرق_القاهرة_ISEF.xlsx");
+            showToast("تم تحميل نموذج شيت الـ 75 مشروع بنجاح", "info");
+        };
+
+        window.exportResultsToExcel = function() {
+            const wb = XLSX.utils.book_new();
+            const stats = computeProjectStats().sort((a, b) => b.avgScore - a.avgScore);
+
+            const headerBanner = [
+                ["معرض قطاع شرق القاهرة للعلوم والهندسة ISEF (75 مشروع)"],
+                [`تقرير نتائج التحكيم المعتمد — تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`],
+                []
+            ];
+            const tableHeaders = [[
+                "الترتيب",
+                "كود المشروع",
+                "اسم المشروع",
+                "الفئة العلمية",
+                "أسماء الطلاب",
+                "المدرسة",
+                "الإدارة التعليمية",
+                "عدد المحكمين",
+                "متوسط الدرجة النهائية (100)",
+                "تفاصيل درجات المحكمين"
+            ]];
+            const rows = stats.map((item, idx) => [
+                item.judgesCount > 0 ? idx + 1 : "-",
+                item.code,
+                item.title,
+                item.category,
+                item.students,
+                item.school,
+                item.administration || "",
+                item.judgesCount,
+                item.judgesCount > 0 ? item.avgScore : "لم يُقيّم",
+                item.evaluations.map(e => `${e.judgeName} (${e.totalScore})`).join(" | ")
+            ]);
+
+            const ws = XLSX.utils.aoa_to_sheet([...headerBanner, ...tableHeaders, ...rows]);
+            ws['!views'] = [{ rightToLeft: true }];
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws, "نتائج 75 مشروع");
+
+            const detailedRows = state.evaluations.map(ev => ({
+                "المعرض": "معرض قطاع شرق القاهرة للعلوم والهندسة ISEF",
+                "كود المشروع": ev.projectCode,
+                "اسم المشروع": ev.projectTitle,
+                "الفئة": ev.projectCategory,
+                "اسم المحكم": ev.judgeName,
+                "التخصص": ev.judgeSpecialty,
+                "موبايل المحكم": ev.judgePhone || "",
+                "سؤال البحث (10)": ev.scores.c1,
+                "التصميم والمنهجية (15)": ev.scores.c2,
+                "التنفيذ والبيانات (20)": ev.scores.c3,
+                "الإبداع (20)": ev.scores.c4,
+                "العرض والمقابلة (35)": ev.scores.c5,
+                "المجموع الكلي (100)": ev.totalScore,
+                "ملاحظات المحكم": ev.notes || "",
+                "وقت التقييم": new Date(ev.timestamp).toLocaleString('ar-EG')
+            }));
+
+            if (detailedRows.length > 0) {
+                const wsDetails = XLSX.utils.json_to_sheet(detailedRows);
+                wsDetails['!views'] = [{ rightToLeft: true }];
+                XLSX.utils.book_append_sheet(wb, wsDetails, "تفاصيل تقييمات المحكمين");
+            }
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `نتائج_75_مشروع_قطاع_شرق_القاهرة_ISEF_${dateStr}.xlsx`);
+            showToast("تم تصدير ملف النتائج النهائية بنجاح", "success");
+        };
+
+        window.printOfficialReport = function() {
+            const stats = computeProjectStats().sort((a, b) => b.avgScore - a.avgScore);
+            const logoSrc = state.customLogo || 'WhatsApp Image 2026-11-23 at 4.47.39 PM_2.jpeg';
+            const logoHtml = `<img src="${logoSrc}" onerror="this.style.display='none'" style="width:78px;height:78px;border-radius:50%;object-fit:cover;border:2px solid #d97706;">`;
+
+            const rowsHtml = stats.map((row, idx) => `
+                <tr>
+                    <td style="text-align:center;font-weight:bold;">${row.judgesCount > 0 ? idx + 1 : '-'}</td>
+                    <td style="font-family:monospace;font-weight:bold;text-align:center;">${row.code}</td>
+                    <td style="font-weight:bold;">${row.title}</td>
+                    <td>${row.category}</td>
+                    <td>${row.students}<br><small style="color:#64748b;">${row.school}${row.administration ? ' • ' + row.administration : ''}</small></td>
+                    <td style="text-align:center;">${row.judgesCount}</td>
+                    <td style="text-align:center;font-weight:900;font-size:14px;">${row.judgesCount > 0 ? row.avgScore + ' / 100' : 'لم يُقيّم'}</td>
+                </tr>
+            `).join('');
+
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                showToast("يرجى السماح بفتح النوافذ المنبثقة للطباعة", "error");
+                return;
+            }
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html lang="ar" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تقرير نتائج معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Cairo', sans-serif; padding: 24px; color: #0f172a; }
+                        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0c4a6e; padding-bottom: 14px; margin-bottom: 18px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px; }
+                        th { background: #0c4a6e; color: #fff; }
+                        tr:nth-child(even) { background: #f8fafc; }
+                        @media print { button { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            ${logoHtml}
+                            <div>
+                                <h1 style="margin:0;font-size:20px;color:#082f49;">معرض قطاع شرق القاهرة للعلوم والهندسة ISEF</h1>
+                                <div style="font-size:13px;color:#475569;font-weight:bold;">ISEF East Cairo Sector — الكشف الرسمي لنتائج التحكيم (75 مشروع)</div>
+                            </div>
+                        </div>
+                        <div style="text-align:left;font-size:12px;color:#475569;">
+                            <div>التاريخ: ${new Date().toLocaleDateString('ar-EG')}</div>
+                            <div>عدد المشاريع: ${stats.length}</div>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>م</th>
+                                <th>الكود</th>
+                                <th>اسم المشروع</th>
+                                <th>الفئة العلمية</th>
+                                <th>الطلاب / المدرسة</th>
+                                <th>المحكمون</th>
+                                <th>متوسط الدرجة</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <script>window.onload = () => { window.print(); };<\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        };
+
+        // ==========================================
+        // 8. HELPERS & TOAST NOTIFICATIONS
+        // ==========================================
+        function refreshAllViews() {
+            if (state.currentJudge) {
+                updateJudgeEvaluatedCounter();
+                filterProjectsList();
+            }
+            if (!document.getElementById('view-admin').classList.contains('hidden')) {
+                renderAdminDashboard();
+            }
+        }
+
+        window.showToast = function(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: "bg-emerald-600 text-white border-emerald-700",
+                error: "bg-rose-600 text-white border-rose-700",
+                info: "bg-slate-800 text-white border-slate-900"
+            };
+            const icons = {
+                success: "fa-check-circle",
+                error: "fa-exclamation-circle",
+                info: "fa-info-circle"
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs sm:text-sm font-bold transition-all duration-300 transform translate-y-0 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info} text-base"></i><span>${message}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
