@@ -134,53 +134,17 @@
 
             <!-- Navigation Tabs, QR & Logo Upload & Judge Info -->
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <button onclick="openQrAndSheetsModal()" title="استخراج رمز QR للمحكمين وربط شيت النتائج"
+                <button type="button" onclick="requireAdminPin(() => openQrAndSheetsModal())" title="محمي برقم الإدارة السري — استخراج رمز QR للمحكمين وربط شيت النتائج"
                     class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-lock text-amber-300 text-[10px]"></i>
                     <i class="fas fa-qrcode"></i>
                     <span>QR المحكمين وربط الشيت</span>
                 </button>
 
                 <input type="file" id="sector-logo-upload" accept="image/png, image/jpeg, image/svg+xml, image/webp" onchange="handleLogoUpload(event)" class="hidden">
-                <button onclick="document.getElementById('sector-logo-upload').click()" title="رفع أو استبدال شعار قطاع شرق القاهرة"
+                <button type="button" onclick="requireAdminPin(() => document.getElementById('sector-logo-upload').click())" title="محمي برقم الإدارة السري — رفع أو استبدال شعار قطاع شرق القاهرة"
                     class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/40 transition flex items-center gap-1.5">
-                    <i class="fas fa-image"></i>
-                    <span class="hidden md:inline">تغيير الشعار</span>
-                </button>
-
-                <div class="flex bg-isef-950/60 p-1 rounded-xl border border-white/10">
-                    <button id="nav-judge" onclick="switchMainView('judge')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow">
-                        <i class="fas fa-gavel"></i>
-                        <span>شاشة التحكيم</span>
-                    </button>
-                    <button id="nav-admin" onclick="switchMainView('admin')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>لوحة النتائج والبيانات</span>
-                    </button>
-                </div>
-
-                <!-- Active Judge Badge -->
-                <div id="active-judge-pill" class="hidden items-center gap-2 bg-white/10 border border-white/15 px-3 py-1.5 rounded-xl text-xs">
-                    <i class="fas fa-user-check text-amber-300"></i>
-                    <span id="header-judge-name" class="font-bold max-w-[120px] truncate"></span>
-                    <button onclick="logoutJudge()" title="تغيير المحكم" class="text-rose-300 hover:text-rose-200 mr-1">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-                    <p class="text-xs text-sky-200">ISEF East Cairo Sector — نظام التحكيم الإلكتروني المعتمد (75 مشروع)</p>
-                </div>
-            </div>
-
-            <!-- Navigation Tabs, QR & Logo Upload & Judge Info -->
-            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <button type="button" onclick="openQrAndSheetsModal()" title="استخراج رمز QR للمحكمين وربط شيت النتائج"
-                    class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 transition flex items-center gap-1.5">
-                    <i class="fas fa-qrcode"></i>
-                    <span>QR المحكمين وربط الشيت</span>
-                </button>
-
-                <input type="file" id="sector-logo-upload" accept="image/png, image/jpeg, image/svg+xml, image/webp" onchange="handleLogoUpload(event)" class="hidden">
-                <button type="button" onclick="document.getElementById('sector-logo-upload').click()" title="رفع أو استبدال شعار قطاع شرق القاهرة"
-                    class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-400/15 hover:bg-amber-400/25 text-amber-200 border border-amber-400/40 transition flex items-center gap-1.5">
+                    <i class="fas fa-lock text-[10px]"></i>
                     <i class="fas fa-image"></i>
                     <span class="hidden md:inline">تغيير الشعار</span>
                 </button>
@@ -191,6 +155,7 @@
                         <span>شاشة التحكيم</span>
                     </button>
                     <button type="button" id="nav-admin" onclick="switchMainView('admin')" class="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10">
+                        <i class="fas fa-lock text-amber-300 text-xs"></i>
                         <i class="fas fa-chart-bar"></i>
                         <span>لوحة النتائج والبيانات</span>
                     </button>
@@ -748,6 +713,10 @@
         // 2. APPLICATION STATE & STORAGE KEYS
         // ==========================================
         const STAGE_KEY = 'local';
+        const ADMIN_PIN_CODE = '1324';
+        const DEFAULT_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw7d4B7CeL3HSxqPm1nMwtO9YXE1jiiW5KFs27a6-lIX9sk8szkz5OeAsCwdxTm1Skt/exec';
+        let adminUnlocked = false;
+        let pendingAdminAction = null;
 
         const LS_KEYS = {
             PROJECTS: 'isef_east_cairo_projects_75_v3',
@@ -766,7 +735,7 @@
             selectedProjectCode: null,
             adminStage: STAGE_KEY,
             customLogo: null,
-            sheetsWebhookUrl: ''
+            sheetsWebhookUrl: DEFAULT_SHEETS_WEBHOOK_URL
         };
 
         let db = null;
@@ -902,6 +871,8 @@
                 const savedWebhook = localStorage.getItem(LS_KEYS.SHEETS_URL);
                 if (savedWebhook) {
                     state.sheetsWebhookUrl = savedWebhook;
+                } else {
+                    state.sheetsWebhookUrl = DEFAULT_SHEETS_WEBHOOK_URL;
                 }
             } catch (e) {
                 console.error("Error reading LocalStorage:", e);
@@ -1090,6 +1061,11 @@
         };
 
         window.switchMainView = function(view) {
+            if (view === 'admin' && !adminUnlocked) {
+                requireAdminPin(() => switchMainView('admin'));
+                return;
+            }
+
             const judgeView = document.getElementById('view-judge');
             const adminView = document.getElementById('view-admin');
             const navJudge = document.getElementById('nav-judge');
@@ -1112,6 +1088,68 @@
                 navAdmin.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-isef-900 shadow";
                 navJudge.className = "px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 text-sky-100 hover:bg-white/10";
                 renderAdminDashboard();
+            }
+        };
+
+        window.requireAdminPin = function(callback) {
+            if (adminUnlocked) {
+                if (typeof callback === 'function') callback();
+                return;
+            }
+            pendingAdminAction = callback;
+            document.getElementById('modal-title').textContent = "منطقة محمية — دخول اللجنة المنظمة";
+            document.getElementById('modal-body').innerHTML = `
+                <form onsubmit="verifyAdminPin(event)" class="space-y-4 py-2 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-800 text-base">يرجى إدخال الرقم السري للإدارة</h4>
+                        <p class="text-xs text-slate-500 mt-1">هذا القسم مخصص للجنة المنظمة لمعرض قطاع شرق القاهرة ISEF فقط</p>
+                    </div>
+                    <div class="max-w-xs mx-auto">
+                        <input type="password" id="admin-pin-input" inputmode="numeric" maxlength="10" required autofocus
+                            placeholder="••••"
+                            class="w-full text-center tracking-[0.5em] text-2xl font-black py-3 px-4 bg-slate-50 border-2 border-slate-300 rounded-xl focus:border-isef-600 focus:ring-2 focus:ring-isef-500 outline-none" dir="ltr">
+                        <p id="admin-pin-error" class="hidden text-xs font-bold text-rose-600 mt-2">
+                            <i class="fas fa-exclamation-triangle"></i> الرقم السري غير صحيح، حاول مرة أخرى
+                        </p>
+                    </div>
+                    <div class="pt-2 flex justify-center gap-2">
+                        <button type="submit" class="px-6 py-2.5 bg-isef-700 hover:bg-isef-800 text-white font-bold rounded-xl text-sm shadow transition cursor-pointer">
+                            <i class="fas fa-unlock-alt ml-1"></i> فتح الإدارة
+                        </button>
+                    </div>
+                </form>
+            `;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                const inp = document.getElementById('admin-pin-input');
+                if (inp) inp.focus();
+            }, 100);
+        };
+
+        window.verifyAdminPin = function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            const inp = document.getElementById('admin-pin-input');
+            const errEl = document.getElementById('admin-pin-error');
+            if (!inp) return;
+
+            if (inp.value.trim() === ADMIN_PIN_CODE) {
+                adminUnlocked = true;
+                closeModal();
+                showToast("تم التحقق — أهلاً بك في لوحة إدارة المعرض", "success");
+                if (typeof pendingAdminAction === 'function') {
+                    const action = pendingAdminAction;
+                    pendingAdminAction = null;
+                    action();
+                }
+            } else {
+                if (errEl) errEl.classList.remove('hidden');
+                inp.value = '';
+                inp.focus();
             }
         };
 
@@ -1335,12 +1373,13 @@
         };
 
         async function sendEvaluationToGoogleSheet(evalRecord) {
-            if (!state.sheetsWebhookUrl) return;
+            const targetUrl = state.sheetsWebhookUrl || DEFAULT_SHEETS_WEBHOOK_URL;
+            if (!targetUrl) return;
             try {
-                await fetch(state.sheetsWebhookUrl, {
+                await fetch(targetUrl, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(evalRecord)
                 });
             } catch (err) {
