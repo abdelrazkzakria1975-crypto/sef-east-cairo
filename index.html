@@ -206,53 +206,21 @@
                     </div>
 
                     <form id="judge-login-form" onsubmit="handleJudgeLogin(event)" class="p-6 sm:p-8 space-y-5">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1.5">اسم المحكم <span class="text-rose-500">*</span></label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
-                                    <i class="fas fa-user"></i>
-                                </span>
-                                <input type="text" id="judge-name" required placeholder="مثال: د. أحمد محمود علي"
-                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold">
-                            </div>
+                        <div class="bg-isef-50 border border-isef-200 rounded-2xl p-4 text-center">
+                            <p class="text-xs sm:text-sm font-bold text-isef-900">
+                                أدخل الكود التعريفي الخاص بك المسلم من اللجنة المنظمة لبدء التحكيم فوراً
+                            </p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1.5">تخصص المحكم (ISEF) <span class="text-rose-500">*</span></label>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">كود المحكم <span class="text-rose-500">*</span></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
-                                    <i class="fas fa-microscope"></i>
+                                    <i class="fas fa-id-badge text-lg"></i>
                                 </span>
-                                <input type="text" id="judge-specialty" list="isef-specialties-list" required placeholder="اختر أو اكتب تخصص المحكم..."
-                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold">
-                                <datalist id="isef-specialties-list">
-                                    <option value="SOFT - برمجيات الأنظمة والذكاء الاصطناعي (Systems Software)">
-                                    <option value="ROBO - الروبوتات والآلات الذكية (Robotics and Intelligent Machines)">
-                                    <option value="EBED - الأنظمة المدمجة (Embedded Systems)">
-                                    <option value="BMED - العلوم الطبية والصحية (Biomedical & Health Sciences)">
-                                    <option value="ENBM - الهندسة الطبية الحيوية (Biomedical Engineering)">
-                                    <option value="TMED - العلوم الطبية الانتقالية (Translational Medical Science)">
-                                    <option value="ENEV - الهندسة البيئية (Environmental Engineering)">
-                                    <option value="EGSD - الطاقة: المواد والتصميم المستدام (Energy: Sustainable Materials)">
-                                    <option value="BEHA - العلوم السلوكية والاجتماعية (Behavioral & Social Sciences)">
-                                    <option value="CHEM - الكيمياء وعلوم المواد (Chemistry & Materials Science)">
-                                    <option value="PHYS - الفيزياء والفلك (Physics and Astronomy)">
-                                    <option value="PLNT - علوم النبات والأحياء (Plant & Biological Sciences)">
-                                    <option value="ANIM - علوم الحيوان (Animal Sciences)">
-                                    <option value="CBIO - البيولوجيا الحاسوبية والمعلوماتية الحيوية (Computational Biology)">
-                                    <option value="MATH - الرياضيات وعلوم البيانات (Mathematics & Data Science)">
-                                </datalist>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1.5">موبايل المحكم <span class="text-rose-500">*</span></label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
-                                    <i class="fas fa-mobile-alt"></i>
-                                </span>
-                                <input type="tel" id="judge-phone" required placeholder="مثال: 01012345678"
-                                    class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-sm font-semibold text-left" dir="ltr">
+                                <input type="text" id="judge-code-input" required autocomplete="off"
+                                    placeholder="مثال: 101"
+                                    class="w-full pr-10 pl-4 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-isef-500 focus:border-isef-500 outline-none transition text-center text-xl font-black tracking-widest uppercase" dir="ltr">
                             </div>
                         </div>
 
@@ -558,6 +526,11 @@
                         <i class="fas fa-trash-alt"></i>
                         <span>حذف التقييمات التجريبية</span>
                     </button>
+
+                    <button type="button" onclick="openJudgesManagerModal()" class="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-user-shield"></i>
+                        <span>إدارة أكواد المحكمين (<span id="badge-judges-count">10</span>)</span>
+                    </button>
                 </div>
             </div>
 
@@ -714,6 +687,19 @@
             { code: "EBED-01", title: "بوابة جراج ذكية (Smart Parking Gate)", students: "جنى أحمد محمد منصور", school: "مدرسة الرائد للغات", administration: "إدارة النزهة", category: "EBED - الأنظمة المدمجة (Embedded Systems)" }
         ];
 
+        const DEFAULT_JUDGES_DIRECTORY = [
+            { code: "101", name: "محكم 1 - لجنة التحكيم" },
+            { code: "102", name: "محكم 2 - لجنة التحكيم" },
+            { code: "103", name: "محكم 3 - لجنة التحكيم" },
+            { code: "104", name: "محكم 4 - لجنة التحكيم" },
+            { code: "105", name: "محكم 5 - لجنة التحكيم" },
+            { code: "106", name: "محكم 6 - لجنة التحكيم" },
+            { code: "107", name: "محكم 7 - لجنة التحكيم" },
+            { code: "108", name: "محكم 8 - لجنة التحكيم" },
+            { code: "109", name: "محكم 9 - لجنة التحكيم" },
+            { code: "110", name: "محكم 10 - لجنة التحكيم" }
+        ];
+
         // ==========================================
         // 2. APPLICATION STATE & STORAGE KEYS
         // ==========================================
@@ -724,9 +710,10 @@
         let pendingAdminAction = null;
 
         const LS_KEYS = {
-            PROJECTS: 'isef_east_cairo_projects_75_v4',
-            EVALUATIONS: 'isef_east_cairo_evals_v4',
-            JUDGE: 'isef_east_cairo_active_judge_v4',
+            PROJECTS: 'isef_east_cairo_projects_75_v5',
+            EVALUATIONS: 'isef_east_cairo_evals_v5',
+            JUDGE: 'isef_east_cairo_active_judge_v5',
+            JUDGES_DIR: 'isef_east_cairo_judges_dir_v5',
             LOGO: 'isef_east_cairo_logo_v4',
             SHEETS_URL: 'isef_east_cairo_sheets_webhook_v4'
         };
@@ -735,6 +722,7 @@
             currentView: 'judge',
             activeJudge: null,
             selectedProjectCode: null,
+            judgesDirectory: [...DEFAULT_JUDGES_DIRECTORY],
             projects: {
                 local: [...DEFAULT_LOCAL_PROJECTS],
                 sector: [...DEFAULT_SECTOR_PROJECTS]
@@ -752,6 +740,13 @@
         // ==========================================
         function loadFromLocalStorage() {
             try {
+                const savedJudgesDir = localStorage.getItem(LS_KEYS.JUDGES_DIR);
+                if (savedJudgesDir) {
+                    const parsedDir = JSON.parse(savedJudgesDir);
+                    if (Array.isArray(parsedDir) && parsedDir.length > 0) {
+                        state.judgesDirectory = parsedDir;
+                    }
+                }
                 const savedProjects = localStorage.getItem(LS_KEYS.PROJECTS);
                 if (savedProjects) {
                     const parsed = JSON.parse(savedProjects);
@@ -781,6 +776,7 @@
 
         function saveToLocalStorage() {
             try {
+                localStorage.setItem(LS_KEYS.JUDGES_DIR, JSON.stringify(state.judgesDirectory));
                 localStorage.setItem(LS_KEYS.PROJECTS, JSON.stringify(state.projects));
                 localStorage.setItem(LS_KEYS.EVALUATIONS, JSON.stringify(state.evaluations));
                 if (state.activeJudge) {
@@ -1296,29 +1292,38 @@
 
         window.handleJudgeLogin = function(event) {
             if (event) event.preventDefault();
-            const nameInput = document.getElementById('judge-name');
-            const specialtyInput = document.getElementById('judge-specialty');
-            const phoneInput = document.getElementById('judge-phone');
+            const codeInput = document.getElementById('judge-code-input');
+            const rawCode = codeInput ? codeInput.value.trim().toUpperCase() : '';
 
-            const name = nameInput ? nameInput.value.trim() : '';
-            const specialty = specialtyInput ? specialtyInput.value.trim() : '';
-            const phone = phoneInput ? phoneInput.value.trim() : '';
+            if (!rawCode) {
+                showToast('يرجى إدخال كود المحكم الخاص بك', 'error');
+                return false;
+            }
 
-            if (!name || !specialty || !phone) {
-                showToast('يرجى إدخال اسم المحكم والتخصص ورقم الموبايل', 'error');
+            const matchedJudge = state.judgesDirectory.find(
+                j => String(j.code).trim().toUpperCase() === rawCode
+            );
+
+            if (!matchedJudge) {
+                showToast('كود المحكم غير مسجل! تأكد من الكود أو راجع اللجنة المنظمة', 'error');
+                if (codeInput) {
+                    codeInput.focus();
+                    codeInput.select();
+                }
                 return false;
             }
 
             state.activeJudge = {
-                name,
-                specialty,
-                phone,
+                code: matchedJudge.code,
+                name: matchedJudge.name,
+                specialty: 'لجنة التحكيم',
+                phone: matchedJudge.code,
                 stage: STAGE_KEY
             };
             state.selectedProjectCode = null;
             saveToLocalStorage();
             renderJudgeWorkspace();
-            showToast(`أهلاً بك ${name} في لجنة تحكيم معرض قطاع شرق القاهرة ISEF`, 'success');
+            showToast(`أهلاً بك ${matchedJudge.name} في لجنة تحكيم معرض قطاع شرق القاهرة ISEF`, 'success');
             return false;
         };
 
@@ -1328,6 +1333,140 @@
             saveToLocalStorage();
             renderJudgeWorkspace();
             showToast('تم تسجيل خروج المحكم', 'info');
+        };
+
+        // ==========================================
+        // 5.5 JUDGES DIRECTORY & CODES MANAGEMENT (ADMIN)
+        // ==========================================
+        window.openJudgesManagerModal = function() {
+            const renderListHtml = () => state.judgesDirectory.map((j, idx) => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-2 px-3 font-black text-isef-800 text-center" dir="ltr">${j.code}</td>
+                    <td class="py-2 px-3 font-bold text-slate-800">${j.name}</td>
+                    <td class="py-2 px-3 text-center">
+                        <button type="button" onclick="deleteJudgeFromDirectory(${idx})" class="text-rose-500 hover:text-rose-700 p-1 cursor-pointer" title="حذف">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const html = `
+                <div class="space-y-4">
+                    <form onsubmit="addJudgeToDirectory(event)" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="new-judge-code" required placeholder="الكود (مثل 111)"
+                            class="sm:w-32 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-center uppercase outline-none focus:ring-2 focus:ring-isef-500" dir="ltr">
+                        <input type="text" id="new-judge-name" required placeholder="اسم المحكم بالكامل (مثل: د. محمد أحمد)"
+                            class="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-isef-500">
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
+                            <i class="fas fa-plus ml-1"></i> إضافة محكم
+                        </button>
+                    </form>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 p-3 rounded-xl">
+                        <span class="text-xs font-bold text-purple-900">استيراد أسماء المحكمين من Excel (عمود: الكود | اسم المحكم)</span>
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="judges-excel-input" accept=".xlsx, .xls, .csv" onchange="handleJudgesExcelUpload(event)" class="hidden">
+                            <button type="button" onclick="document.getElementById('judges-excel-input').click()" class="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold cursor-pointer">
+                                <i class="fas fa-file-excel ml-1"></i> رفع شيت المحكمين
+                            </button>
+                            <button type="button" onclick="exportJudgesCodesExcel()" class="px-3 py-1.5 bg-white border border-purple-300 text-purple-900 hover:bg-purple-100 rounded-lg text-xs font-bold cursor-pointer">
+                                <i class="fas fa-download ml-1"></i> تصدير الأكواد
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="max-h-64 overflow-y-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-100 text-slate-700 font-extrabold sticky top-0">
+                                <tr>
+                                    <th class="py-2.5 px-3 text-center w-24">الكود</th>
+                                    <th class="py-2.5 px-3">اسم المحكم</th>
+                                    <th class="py-2.5 px-3 text-center w-16">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="judges-dir-tbody">
+                                ${renderListHtml()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            openModal('إدارة أسماء وأكواد السادة المحكمين', html);
+        };
+
+        window.addJudgeToDirectory = function(event) {
+            event.preventDefault();
+            const codeInp = document.getElementById('new-judge-code');
+            const nameInp = document.getElementById('new-judge-name');
+            const code = codeInp.value.trim().toUpperCase();
+            const name = nameInp.value.trim();
+            if (!code || !name) return;
+
+            const existingIdx = state.judgesDirectory.findIndex(j => String(j.code).toUpperCase() === code);
+            if (existingIdx >= 0) {
+                state.judgesDirectory[existingIdx].name = name;
+                showToast(`تم تحديث اسم المحكم للكود ${code}`, 'success');
+            } else {
+                state.judgesDirectory.push({ code, name });
+                showToast(`تم إضافة المحكم ${name} بكود ${code}`, 'success');
+            }
+            saveToLocalStorage();
+            renderAdminDashboard();
+            openJudgesManagerModal();
+        };
+
+        window.deleteJudgeFromDirectory = function(index) {
+            state.judgesDirectory.splice(index, 1);
+            saveToLocalStorage();
+            renderAdminDashboard();
+            openJudgesManagerModal();
+            showToast('تم حذف المحكم من القائمة', 'info');
+        };
+
+        window.handleJudgesExcelUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+                    const imported = rows.map((r, i) => {
+                        const code = String(r['الكود'] || r['كود المحكم'] || r['Code'] || (101 + i)).trim().toUpperCase();
+                        const name = String(r['اسم المحكم'] || r['الاسم'] || r['Name'] || '').trim();
+                        return { code, name };
+                    }).filter(j => j.name !== '');
+
+                    if (imported.length === 0) {
+                        showToast('تأكد من وجود عمود "اسم المحكم" و "الكود" في الملف', 'error');
+                        return;
+                    }
+                    state.judgesDirectory = imported;
+                    saveToLocalStorage();
+                    renderAdminDashboard();
+                    openJudgesManagerModal();
+                    showToast(`تم استيراد ${imported.length} محكم وأكوادهم بنجاح!`, 'success');
+                } catch (err) {
+                    showToast('خطأ في قراءة ملف المحكمين', 'error');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.exportJudgesCodesExcel = function() {
+            const rows = state.judgesDirectory.map(j => ({
+                'كود الدخول للمحكم': j.code,
+                'اسم المحكم': j.name
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'أكواد_المحكمين');
+            XLSX.writeFile(wb, 'أكواد_دخول_المحكمين_ISEF_شرق_القاهرة.xlsx');
+            showToast('تم تصدير كشف أكواد المحكمين بنجاح', 'success');
         };
 
         // ==========================================
@@ -1359,13 +1498,13 @@
             const j = state.activeJudge;
             document.getElementById('header-judge-name').textContent = j.name;
             document.getElementById('ws-judge-name').textContent = j.name;
-            document.getElementById('ws-judge-meta').textContent = `${j.specialty}  |  موبايل: ${j.phone}`;
+            document.getElementById('ws-judge-meta').textContent = `كود المحكم: ${j.code || j.phone}`;
 
             const stageProjects = getProjectsByStage(STAGE_KEY);
             document.getElementById('stage-projects-total').textContent = `${stageProjects.length} مشروع`;
 
             const myEvalsCount = state.evaluations.filter(e =>
-                e.judgePhone === j.phone
+                (e.judgeCode && e.judgeCode === j.code) || e.judgePhone === j.phone
             ).length;
             document.getElementById('ws-evaluated-count').textContent = `${myEvalsCount} / ${stageProjects.length}`;
 
@@ -1412,7 +1551,7 @@
             container.innerHTML = filtered.map(p => {
                 const isEvaluatedByMe = state.evaluations.some(e =>
                     e.projectCode === p.code &&
-                    e.judgePhone === state.activeJudge.phone
+                    ((e.judgeCode && e.judgeCode === state.activeJudge.code) || e.judgePhone === state.activeJudge.phone)
                 );
                 const isSelected = state.selectedProjectCode === p.code;
 
@@ -1450,7 +1589,7 @@
 
             const existingEval = state.evaluations.find(e =>
                 e.projectCode === code &&
-                e.judgePhone === state.activeJudge.phone
+                ((e.judgeCode && e.judgeCode === state.activeJudge.code) || e.judgePhone === state.activeJudge.phone)
             );
 
             if (existingEval) {
@@ -1526,8 +1665,8 @@
             const j = state.activeJudge;
             const stageProjects = getProjectsByStage(STAGE_KEY);
             const project = stageProjects.find(p => p.code === state.selectedProjectCode) || {};
-            const cleanPhone = j.phone.replace(/\s+/g, '');
-            const evalId = `${STAGE_KEY}_${state.selectedProjectCode}_${cleanPhone}`;
+            const cleanCode = String(j.code || j.phone).replace(/\s+/g, '');
+            const evalId = `${STAGE_KEY}_${state.selectedProjectCode}_${cleanCode}`;
 
             const evalRecord = {
                 id: evalId,
@@ -1538,9 +1677,10 @@
                 projectSchool: project.school || '',
                 projectAdministration: project.administration || '',
                 projectCategory: project.category || '',
+                judgeCode: j.code || cleanCode,
                 judgeName: j.name,
-                judgeSpecialty: j.specialty,
-                judgePhone: j.phone,
+                judgeSpecialty: 'لجنة التحكيم',
+                judgePhone: j.code || cleanCode,
                 scores: { c1, c2, c3, c4, c5 },
                 totalScore: total,
                 notes,
@@ -1572,8 +1712,10 @@
             const stageEvals = state.evaluations;
 
             document.getElementById('badge-local-count').textContent = stageProjects.length;
+            const judgesBadge = document.getElementById('badge-judges-count');
+            if (judgesBadge) judgesBadge.textContent = state.judgesDirectory.length;
 
-            const uniqueJudges = new Set(stageEvals.map(e => e.judgePhone)).size;
+            const uniqueJudges = new Set(stageEvals.map(e => e.judgeCode || e.judgePhone)).size;
             let highestAvg = 0;
 
             stageProjects.forEach(p => {
@@ -1703,7 +1845,7 @@
                                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
                                     <div>
                                         <span class="font-extrabold text-slate-800">${ev.judgeName}</span>
-                                        <span class="text-xs text-slate-500 block">${ev.judgeSpecialty} | موبايل: ${ev.judgePhone}</span>
+                                        <span class="text-xs text-slate-500 block">كود المحكم: ${ev.judgeCode || ev.judgePhone}</span>
                                     </div>
                                     <span class="px-3 py-1 rounded-lg bg-isef-700 text-white font-black text-sm">${ev.totalScore} / 100</span>
                                 </div>
