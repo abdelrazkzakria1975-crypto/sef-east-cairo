@@ -181,7 +181,7 @@
         <!-- ========================================================= -->
         <section id="view-judge" class="tab-content">
 
-            <!-- Step 1: Judge Login Card (Name, Specialty, Mobile Only) -->
+            <!-- Step 1: Judge Login Card -->
             <div id="judge-login-screen" class="max-w-xl mx-auto mt-4">
                 <div class="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
                     <div class="bg-gradient-to-l from-isef-950 via-isef-900 to-isef-700 px-6 py-7 text-white text-center relative overflow-hidden border-b-2 border-amber-400">
@@ -208,7 +208,7 @@
                     <form id="judge-login-form" onsubmit="handleJudgeLogin(event)" class="p-6 sm:p-8 space-y-5">
                         <div class="bg-isef-50 border border-isef-200 rounded-2xl p-4 text-center">
                             <p class="text-xs sm:text-sm font-bold text-isef-900">
-                                أدخل الكود التعريفي الخاص بك المسلم من اللجنة المنظمة لبدء التحكيم فوراً
+                                أدخل الكود التعريفي الخاص بك (من 101 إلى 131) لبدء التحكيم فوراً
                             </p>
                         </div>
 
@@ -490,7 +490,7 @@
                 </div>
             </div>
 
-            <!-- Control Bar: 75 Projects Badge + Excel Import/Export -->
+            <!-- Control Bar: 75 Projects Badge + Excel/Word Import/Export -->
             <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
                 <div class="flex items-center gap-2.5 bg-isef-50 border border-isef-200 px-4 py-2.5 rounded-xl">
                     <i class="fas fa-layer-group text-isef-700"></i>
@@ -499,17 +499,17 @@
                     </span>
                 </div>
 
-                <!-- Excel Actions -->
+                <!-- Actions -->
                 <div class="flex flex-wrap items-center gap-2.5">
+                    <button type="button" onclick="exportJudgingDistributionWord()" class="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fas fa-file-word"></i>
+                        <span>تصدير توزيع المحكمين والطلاب (Word)</span>
+                    </button>
+
                     <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event)" class="hidden">
                     <button type="button" onclick="document.getElementById('excel-file-input').click()" class="px-4 py-2.5 bg-isef-700 hover:bg-isef-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
                         <i class="fas fa-file-upload"></i>
                         <span>استيراد شيت بيانات (Excel/CSV)</span>
-                    </button>
-
-                    <button type="button" onclick="downloadTemplateExcel()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                        <i class="fas fa-download"></i>
-                        <span>نموذج الشيت</span>
                     </button>
 
                     <button type="button" onclick="exportResultsToExcel()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
@@ -529,7 +529,7 @@
 
                     <button type="button" onclick="openJudgesManagerModal()" class="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm cursor-pointer">
                         <i class="fas fa-user-shield"></i>
-                        <span>إدارة أكواد المحكمين (<span id="badge-judges-count">10</span>)</span>
+                        <span>إدارة أكواد المحكمين (<span id="badge-judges-count">31</span>)</span>
                     </button>
                 </div>
             </div>
@@ -584,7 +584,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-8">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            منصة التحكيم الإلكتروني لمعرض قطاع شرق القاهرة للعلوم والهندسة ISEF — تعمل بكفاءة على الهواتف الذكية والأجهزة اللوحية مع تصدير فوري لـ Excel
+            منصة التحكيم الإلكتروني لمعرض قطاع شرق القاهرة للعلوم والهندسة ISEF — تعمل بكفاءة على الهواتف الذكية والأجهزة اللوحية مع تصدير فوري لـ Excel و Word
         </div>
     </footer>
 
@@ -688,16 +688,37 @@
         ];
 
         const DEFAULT_JUDGES_DIRECTORY = [
-            { code: "101", name: "محكم 1 - لجنة التحكيم" },
-            { code: "102", name: "محكم 2 - لجنة التحكيم" },
-            { code: "103", name: "محكم 3 - لجنة التحكيم" },
-            { code: "104", name: "محكم 4 - لجنة التحكيم" },
-            { code: "105", name: "محكم 5 - لجنة التحكيم" },
-            { code: "106", name: "محكم 6 - لجنة التحكيم" },
-            { code: "107", name: "محكم 7 - لجنة التحكيم" },
-            { code: "108", name: "محكم 8 - لجنة التحكيم" },
-            { code: "109", name: "محكم 9 - لجنة التحكيم" },
-            { code: "110", name: "محكم 10 - لجنة التحكيم" }
+            { code: "101", name: "د. سارة محمود", specialty: "الذكاء الاصطناعي والبحث العلمي (SOFT / BEHA)" },
+            { code: "102", name: "د/ علي إيهاب", specialty: "Soft - EBED - ROBO" },
+            { code: "103", name: "هاني صبحي", specialty: "البرمجة (SOFT)" },
+            { code: "104", name: "هدى أحمد محمود", specialty: "برمجة (SOFT)" },
+            { code: "105", name: "رشا محمد نور الدين", specialty: "برمجة (SOFT - احتياطي 1)" },
+            { code: "106", name: "د. لمياء ذكي محمد", specialty: "أستاذ مساعد هندسة القاهرة (ROBO)" },
+            { code: "107", name: "منى عبد الفتاح السيد", specialty: "إلكترونيات (ROBO)" },
+            { code: "108", name: "فايزة أحمد", specialty: "إلكترونيات (ROBO)" },
+            { code: "109", name: "لبنى عبد العزيز", specialty: "هندسة اتصالات (EBED)" },
+            { code: "110", name: "إكرام محمد", specialty: "هندسة (EBED)" },
+            { code: "111", name: "رباب أحمد", specialty: "هندسة (EBED)" },
+            { code: "112", name: "د. هالة أبو النجا حسين", specialty: "المركز القومي للبحوث (ENBM)" },
+            { code: "113", name: "د. هشام عبد الباري", specialty: "البحث العلمي والتكنولوجيا (ENBM / BEHA)" },
+            { code: "114", name: "أسماء السعيد", specialty: "بحث علمي (ENBM / BEHA)" },
+            { code: "115", name: "مي إبراهيم", specialty: "هندسة (ENBM)" },
+            { code: "116", name: "د. محمد السيد حسن قيشاوي", specialty: "أستاذ مساعد معهد بحوث البترول (ENEV)" },
+            { code: "117", name: "أ.د. رشا سمير محمد كمال", specialty: "أستاذ بمعهد بحوث البترول (ENEV)" },
+            { code: "118", name: "د. إيمان عمر عبد الرحيم طه", specialty: "أستاذ مساعد بمعهد بحوث البترول (ENEV)" },
+            { code: "119", name: "د. محمود فتحي مبارك", specialty: "أستاذ مساعد معهد بحوث البترول - كيمياء فيزيائية (MATS)" },
+            { code: "120", name: "أ.د.م/ حنان عبد الغني عبد اللاه أحمد", specialty: "أستاذ باحث مساعد بمعهد بحوث البترول (MATS)" },
+            { code: "121", name: "د. أسماء أحمد عامر", specialty: "أستاذ مساعد بمعهد بحوث البترول (MATS)" },
+            { code: "122", name: "أميرة عبد الفتاح", specialty: "هندسة مدني (ETMK)" },
+            { code: "123", name: "منيرة جمال", specialty: "هندسة (ETMK)" },
+            { code: "124", name: "السيد إبراهيم", specialty: "فيزياء (ETMK)" },
+            { code: "125", name: "د. شيرين مصطفى", specialty: "الكيمياء (CHEM)" },
+            { code: "126", name: "إيمان الصاوي", specialty: "كيمياء (CHEM)" },
+            { code: "127", name: "د. محمد حسن فرج محمد", specialty: "باحث بمعهد بحوث البترول (CHEM)" },
+            { code: "128", name: "د. إيناس أمضيها إسماعيل عبد الصمد", specialty: "أستاذ مساعد بمعهد بحوث البترول (EAEV / PLNT)" },
+            { code: "129", name: "أيمن مجدي", specialty: "فيزياء (EAEV / PLNT)" },
+            { code: "130", name: "عميد كامل", specialty: "فيزياء (EAEV / PLNT)" },
+            { code: "131", name: "رشا محمد نور الدين (م20)", specialty: "برمجة (SOFT - احتياطي 2)" }
         ];
 
         // ==========================================
@@ -710,10 +731,10 @@
         let pendingAdminAction = null;
 
         const LS_KEYS = {
-            PROJECTS: 'isef_east_cairo_projects_75_v5',
-            EVALUATIONS: 'isef_east_cairo_evals_v5',
-            JUDGE: 'isef_east_cairo_active_judge_v5',
-            JUDGES_DIR: 'isef_east_cairo_judges_dir_v5',
+            PROJECTS: 'isef_east_cairo_projects_75_v7',
+            EVALUATIONS: 'isef_east_cairo_evals_v7',
+            JUDGE: 'isef_east_cairo_active_judge_v7',
+            JUDGES_DIR: 'isef_east_cairo_judges_dir_v7',
             LOGO: 'isef_east_cairo_logo_v4',
             SHEETS_URL: 'isef_east_cairo_sheets_webhook_v4'
         };
@@ -1083,7 +1104,200 @@
         };
 
         // ==========================================
-        // 4.5 QR CODE & GOOGLE SHEETS LINK MODAL
+        // 4.5 EXPORT JUDGING DISTRIBUTION TO WORD (.DOC)
+        // ==========================================
+        window.exportJudgingDistributionWord = function() {
+            const wordHtml = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl' lang='ar'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>توزيع المحكمين حسب التخصص والوظيفة - معرض قطاع شرق القاهرة ISEF</title>
+                    <style>
+                        body { font-family: 'Arial', 'Tahoma', sans-serif; direction: rtl; text-align: right; color: #0f172a; }
+                        h1 { color: #082f49; text-align: center; font-size: 20pt; margin-bottom: 4pt; }
+                        h2 { color: #0369a1; background: #f0f9ff; padding: 6pt 10pt; border-right: 4pt solid #0369a1; font-size: 14pt; margin-top: 16pt; }
+                        p.sub { text-align: center; color: #475569; font-size: 11pt; margin-top: 0; margin-bottom: 14pt; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 14pt; font-size: 10.5pt; }
+                        th, td { border: 1px solid #94a3b8; padding: 6pt 8pt; text-align: right; }
+                        th { background-color: #082f49; color: #ffffff; font-weight: bold; }
+                        tr:nth-child(even) { background-color: #f8fafc; }
+                        .center { text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <h1>كشف توزيع السادة المحكمين والطلاب حسب التخصص (3 جولات)</h1>
+                    <p class='sub'>معرض قطاع شرق القاهرة للعلوم والهندسة (ISEF) — التوزيع المعتمد للاستيكرات (31 محكماً)</p>
+
+                    <h2>أولاً: كشف أكواد وتخصصات السادة المحكمين المعتمدين</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class='center'>الكود</th>
+                                <th>اسم المحكم</th>
+                                <th>التخصص / الوظيفة الأكاديمية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${state.judgesDirectory.map(j => `
+                                <tr>
+                                    <td class='center'><strong>${j.code}</strong></td>
+                                    <td><strong>${j.name}</strong></td>
+                                    <td>${j.specialty || 'لجنة التحكيم'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <h2>ثانياً: توزيع المحكمين بالأسماء على المشاريع والطلاب (3 جولات)</h2>
+
+                    <h3>1. مجال: Systems Software (SOFT) — برمجيات الأنظمة (18 مشروعاً)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>SOFT-01</strong></td><td>1- كاراس ثروت فائق فايز</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td><td>هاني صبحي</td></tr>
+                            <tr><td><strong>SOFT-02</strong></td><td>1- أسامة أشرف رجب محمد 2- زياد تامر حسين عزب</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td><td>هاني صبحي</td></tr>
+                            <tr><td><strong>SOFT-03</strong></td><td>1- فرح ماجد محمد 2- درة حسام محمد</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td><td>هاني صبحي</td></tr>
+                            <tr><td><strong>SOFT-04</strong></td><td>1- فيلوباتير فهيم سعيد فهيم</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td><td>هاني صبحي</td></tr>
+                            <tr><td><strong>SOFT-05</strong></td><td>1- عبد الرحمن محمد عبد المنعم 2- سلمى محمد جاد</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td><td>هاني صبحي</td></tr>
+                            <tr><td><strong>SOFT-06</strong></td><td>1- كريم محمد حنفي</td><td>د/ علي إيهاب</td><td>هاني صبحي</td><td>هدى أحمد محمود</td></tr>
+                            <tr><td><strong>SOFT-07</strong></td><td>1- محمد أيمن شحاتة</td><td>د/ علي إيهاب</td><td>هاني صبحي</td><td>هدى أحمد محمود</td></tr>
+                            <tr><td><strong>SOFT-08</strong></td><td>1- باسل وائل وحيد 2- عبد الله محمد عبد الله</td><td>د/ علي إيهاب</td><td>هاني صبحي</td><td>هدى أحمد محمود</td></tr>
+                            <tr><td><strong>SOFT-09</strong></td><td>1- محمد تامر دسوقي 2- محمد محمود محمد علي</td><td>د/ علي إيهاب</td><td>هاني صبحي</td><td>هدى أحمد محمود</td></tr>
+                            <tr><td><strong>SOFT-10</strong></td><td>1- محمد إيهاب محمد 2- فيلوباتير جرجس نسيم</td><td>د/ علي إيهاب</td><td>هاني صبحي</td><td>هدى أحمد محمود</td></tr>
+                            <tr><td><strong>SOFT-11</strong></td><td>1- محمد صفوت فؤاد</td><td>هاني صبحي</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td></tr>
+                            <tr><td><strong>SOFT-12</strong></td><td>1- تسنيم نور الدين جمال 2- مريم سيد علي</td><td>هاني صبحي</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td></tr>
+                            <tr><td><strong>SOFT-13</strong></td><td>1- رشاد محمد رشاد عبد العال حسين سالم فرج</td><td>هاني صبحي</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td></tr>
+                            <tr><td><strong>SOFT-14</strong></td><td>1- لوجين وائل نعيم فتوح 2- لجين محمد خيري السيد</td><td>هاني صبحي</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td></tr>
+                            <tr><td><strong>SOFT-15</strong></td><td>1- لمار مصطفى حسن سيد أحمد حجاج 2- يوسف صالح مرسي محمد</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td></tr>
+                            <tr><td><strong>SOFT-16</strong></td><td>1- Karim Emad Ibrahim Elkholy 2- زياد إبراهيم مرسي السلاموني</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td></tr>
+                            <tr><td><strong>SOFT-17</strong></td><td>1- مروان تامر محمد أبو السعود</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td></tr>
+                            <tr><td><strong>SOFT-18</strong></td><td>1- محمد صلاح يوسف محمد</td><td>هدى أحمد محمود</td><td>د. سارة محمود</td><td>د/ علي إيهاب</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>2. مجال: Robotics and Intelligent Machines (ROBO) — الروبوتات والآلات الذكية (8 مشاريع)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ROBO-01</strong></td><td>1- ميار أحمد محمد فريد 2- جومانة محمد حسن خليفة</td><td>د. لمياء ذكي محمد</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td></tr>
+                            <tr><td><strong>ROBO-02</strong></td><td>1- محمد سامح عبد الفتاح محمد 2- يوسف مجدي خليل سيد</td><td>د. لمياء ذكي محمد</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td></tr>
+                            <tr><td><strong>ROBO-03</strong></td><td>1- فادي ناصف صليب سلواني 2- فاطمة تامر عبد الرشيد محمود</td><td>د. لمياء ذكي محمد</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td></tr>
+                            <tr><td><strong>ROBO-04</strong></td><td>1- أحمد رضا محمد 2- رائد محمد عبد الفتاح</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td><td>د. لمياء ذكي محمد</td></tr>
+                            <tr><td><strong>ROBO-05</strong></td><td>1- لانا محمود أمين عبادي 2- لامار محمود أمين عبادي</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td><td>د. لمياء ذكي محمد</td></tr>
+                            <tr><td><strong>ROBO-06</strong></td><td>1- Omar Elhusseiny Elsayed Ibrahim Sharaf aldin</td><td>منى عبد الفتاح السيد</td><td>فايزة أحمد</td><td>د. لمياء ذكي محمد</td></tr>
+                            <tr><td><strong>ROBO-07</strong></td><td>1- جيداء عمرو الجداوي عبد العزيز</td><td>فايزة أحمد</td><td>د. لمياء ذكي محمد</td><td>منى عبد الفتاح السيد</td></tr>
+                            <tr><td><strong>ROBO-08</strong></td><td>1- عمر أيمن علي 2- أحمد محمد صلاح</td><td>فايزة أحمد</td><td>د. لمياء ذكي محمد</td><td>منى عبد الفتاح السيد</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>3. مجال: Embedded Systems (EBED) — الأنظمة المدمجة (7 مشاريع)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>EBED-01</strong></td><td>1- مصطفى السعيد محمد محمد</td><td>لبنى عبد العزيز</td><td>إكرام محمد</td><td>رباب أحمد</td></tr>
+                            <tr><td><strong>EBED-02</strong></td><td>1- أسيل أحمد عبد الفتاح عبد التواب 2- أحمد محمد عبد السلام</td><td>لبنى عبد العزيز</td><td>إكرام محمد</td><td>رباب أحمد</td></tr>
+                            <tr><td><strong>EBED-03</strong></td><td>1- حبيبة أحمد يسري 2- بسمة أحمد عبد المنعم</td><td>لبنى عبد العزيز</td><td>إكرام محمد</td><td>رباب أحمد</td></tr>
+                            <tr><td><strong>EBED-04</strong></td><td>1- عاطف أحمد السيد 2- جان أسامة لمعي</td><td>إكرام محمد</td><td>رباب أحمد</td><td>لبنى عبد العزيز</td></tr>
+                            <tr><td><strong>EBED-05</strong></td><td>1- يارا السيد عنتر الشهاوي 2- جويرية خالد محمد سعيد</td><td>إكرام محمد</td><td>رباب أحمد</td><td>لبنى عبد العزيز</td></tr>
+                            <tr><td><strong>EBED-06</strong></td><td>1- Ammar Ahmed Ali Hassan</td><td>رباب أحمد</td><td>لبنى عبد العزيز</td><td>إكرام محمد</td></tr>
+                            <tr><td><strong>EBED-07</strong></td><td>1- أحمد محمود محمود إبراهيم 2- عدي تامر سعيد راشد</td><td>رباب أحمد</td><td>لبنى عبد العزيز</td><td>إكرام محمد</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>4. مجال: Biomedical Engineering (ENBM) — الهندسة الطبية الحيوية (19 مشروعاً)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ENBM-01</strong></td><td>1- كريم فايز أحمد أحمد</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>ENBM-02</strong></td><td>1- مارتن نادر صبري فؤاد</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>ENBM-03</strong></td><td>1- زياد محمود عبد الغني 2- محمد هاني كامل</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>ENBM-04</strong></td><td>1- نورين أحمد سامي سلام</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>ENBM-05</strong></td><td>1- ملك عيد علي خلف 2- كنزي شريف السحرتي</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>ENBM-06</strong></td><td>1- نور عبد القادر فرغلي عبد القادر</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td><td>مي إبراهيم</td></tr>
+                            <tr><td><strong>ENBM-07</strong></td><td>1- جومانة إسماعيل محمد 2- مروان بسام ممدوح</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td><td>مي إبراهيم</td></tr>
+                            <tr><td><strong>ENBM-08</strong></td><td>1- بافلي صليب عطية موسى صليب 2- علاء إبراهيم عبد الفتاح بدر بيومي</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td><td>مي إبراهيم</td></tr>
+                            <tr><td><strong>ENBM-09</strong></td><td>1- إياد هشام محمد محمد إسماعيل 2- محمود محمد محمود حسين محمود</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td><td>مي إبراهيم</td></tr>
+                            <tr><td><strong>ENBM-10</strong></td><td>1- نور محمد جاد المولى</td><td>د. هشام عبد الباري</td><td>أسماء السعيد</td><td>مي إبراهيم</td></tr>
+                            <tr><td><strong>ENBM-11</strong></td><td>1- رودينا عزام علي أحمد</td><td>أسماء السعيد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td></tr>
+                            <tr><td><strong>ENBM-12</strong></td><td>1- ahmed shady farouk taha 2- عمر شريف رمضان عبد العظيم</td><td>أسماء السعيد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td></tr>
+                            <tr><td><strong>ENBM-13</strong></td><td>1- Mohamed Tawfik Saeed Tawfik El-Neklawy 2- حمزة خالد جمال أحمد الدكروري</td><td>أسماء السعيد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td></tr>
+                            <tr><td><strong>ENBM-14</strong></td><td>1- Mohammed Hussein Mohammed Shamroukh 2- يوسف إبراهيم محمد عبد الوهاب</td><td>أسماء السعيد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td></tr>
+                            <tr><td><strong>ENBM-15</strong></td><td>1- Mohamed Ahmed Mohamed Ahmed Ibrahim</td><td>أسماء السعيد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td></tr>
+                            <tr><td><strong>ENBM-16</strong></td><td>1- Moaz Adel Salah Abd Elazez 2- يوسف إبراهيم محمد عبد الرحمن</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td></tr>
+                            <tr><td><strong>ENBM-17</strong></td><td>1- عبد الرحمن محمد إبراهيم 2- أحمد نصر أحمد محمود</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td></tr>
+                            <tr><td><strong>ENBM-18</strong></td><td>1- عمر سيد محمد كمال 2- عائشة سيد محمد</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td></tr>
+                            <tr><td><strong>ENBM-19</strong></td><td>1- محمد مصطفى محمد حسن</td><td>مي إبراهيم</td><td>د. هالة أبو النجا حسين</td><td>د. هشام عبد الباري</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>5. مجال: Environmental Engineering (ENEV) — الهندسة البيئية (6 مشاريع)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ENEV-01</strong></td><td>1- منة الله أحمد سليمان</td><td>د. محمد السيد حسن قيشاوي</td><td>أ.د. رشا سمير محمد كمال</td><td>د. إيمان عمر عبد الرحيم طه</td></tr>
+                            <tr><td><strong>ENEV-02</strong></td><td>1- مارينا هاني سامي هنري</td><td>د. محمد السيد حسن قيشاوي</td><td>أ.د. رشا سمير محمد كمال</td><td>د. إيمان عمر عبد الرحيم طه</td></tr>
+                            <tr><td><strong>ENEV-03</strong></td><td>1- آدم عمر إبراهيم 2- سيف الباشا حسن</td><td>أ.د. رشا سمير محمد كمال</td><td>د. إيمان عمر عبد الرحيم طه</td><td>د. محمد السيد حسن قيشاوي</td></tr>
+                            <tr><td><strong>ENEV-04</strong></td><td>1- مريم محمد شوقي</td><td>أ.د. رشا سمير محمد كمال</td><td>د. إيمان عمر عبد الرحيم طه</td><td>د. محمد السيد حسن قيشاوي</td></tr>
+                            <tr><td><strong>ENEV-05</strong></td><td>1- ريتاج محمد عبد الخالق</td><td>د. إيمان عمر عبد الرحيم طه</td><td>د. محمد السيد حسن قيشاوي</td><td>أ.د. رشا سمير محمد كمال</td></tr>
+                            <tr><td><strong>ENEV-06</strong></td><td>1- الزهراء أحمد صابر 2- روميساء رفعت عبد الخالق</td><td>د. إيمان عمر عبد الرحيم طه</td><td>د. محمد السيد حسن قيشاوي</td><td>أ.د. رشا سمير محمد كمال</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>6. مجال: Materials Science (MATS) — علوم المواد (4 مشاريع)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>MATS-01</strong></td><td>1- Yassin Sayed Abd Elbaky</td><td>د. محمود فتحي مبارك</td><td>أ.د.م/ حنان عبد الغني عبد اللاه</td><td>د. أسماء أحمد عامر</td></tr>
+                            <tr><td><strong>MATS-02</strong></td><td>1- Ahmed Atef Abdelsalam Abdelmageed 2- يوسف محمد جابر</td><td>د. محمود فتحي مبارك</td><td>أ.د.م/ حنان عبد الغني عبد اللاه</td><td>د. أسماء أحمد عامر</td></tr>
+                            <tr><td><strong>MATS-03</strong></td><td>1- أحمد فؤاد حسين عبد الباقي 2- صلاح علاء صلاح</td><td>أ.د.م/ حنان عبد الغني عبد اللاه</td><td>د. أسماء أحمد عامر</td><td>د. محمود فتحي مبارك</td></tr>
+                            <tr><td><strong>MATS-04</strong></td><td>1- عبد الرحمن محمد أحمد عبد الرازق 2- علي الدين هشام صادق سليمان</td><td>د. أسماء أحمد عامر</td><td>د. محمود فتحي مبارك</td><td>أ.د.م/ حنان عبد الغني عبد اللاه</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>7. مجال: Engineering Technology: Statics & Dynamics (ETMK) — التكنولوجيا الهندسية (5 مشاريع)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ETMK-01</strong></td><td>1- نور محمود رجب محمود</td><td>أميرة عبد الفتاح</td><td>منيرة جمال</td><td>السيد إبراهيم</td></tr>
+                            <tr><td><strong>ETMK-02</strong></td><td>1- محمد كرم أمين فؤاد 2- يوسف حازم فوزي محمد</td><td>أميرة عبد الفتاح</td><td>منيرة جمال</td><td>السيد إبراهيم</td></tr>
+                            <tr><td><strong>ETMK-03</strong></td><td>1- محمد حسام الدين سيد محمد مصطفى</td><td>منيرة جمال</td><td>السيد إبراهيم</td><td>أميرة عبد الفتاح</td></tr>
+                            <tr><td><strong>ETMK-04</strong></td><td>1- بولا غاطس عوض 2- آية محمد رفعت</td><td>منيرة جمال</td><td>السيد إبراهيم</td><td>أميرة عبد الفتاح</td></tr>
+                            <tr><td><strong>ETMK-05</strong></td><td>1- يوسف محمد عبد المؤمن</td><td>السيد إبراهيم</td><td>أميرة عبد الفتاح</td><td>منيرة جمال</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>8. باقي المجالات (CHEM / PLNT / EAEV / BEHA)</h3>
+                    <table>
+                        <thead><tr><th>الكود</th><th>اسم الطالب / الطالبين</th><th>الجولة الأولى</th><th>الجولة الثانية</th><th>الجولة الثالثة</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>CHEM-01</strong></td><td>1- حسن أحمد حسن 2- روضة أحمد بسيوني</td><td>د. شيرين مصطفى</td><td>إيمان الصاوي</td><td>د. محمد حسن فرج محمد</td></tr>
+                            <tr><td><strong>PLNT-01</strong></td><td>1- عبد الرحمن عبد ربه عبد الصادق</td><td>د. إيناس أمضيها إسماعيل</td><td>أيمن مجدي</td><td>عميد كامل</td></tr>
+                            <tr><td><strong>PLNT-02</strong></td><td>1- حسن هاني حسن فكري 2- خالد زكريا محمود محمد</td><td>أيمن مجدي</td><td>عميد كامل</td><td>د. إيناس أمضيها إسماعيل</td></tr>
+                            <tr><td><strong>EAEV-01</strong></td><td>1- زياد محمود عبد الغني 2- زياد أحمد عبد الرحمن</td><td>د. إيناس أمضيها إسماعيل</td><td>أيمن مجدي</td><td>عميد كامل</td></tr>
+                            <tr><td><strong>BEHA-01</strong></td><td>1- كيرلس عصام زكري 2- محمد أحمد عيد</td><td>د. هشام عبد الباري</td><td>د. سارة محمود</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>BEHA-02</strong></td><td>1- سما خالد سيد</td><td>د. هشام عبد الباري</td><td>د. سارة محمود</td><td>أسماء السعيد</td></tr>
+                            <tr><td><strong>BEHA-03</strong></td><td>1- مازن هشام إبراهيم</td><td>د. سارة محمود</td><td>أسماء السعيد</td><td>د. هشام عبد الباري</td></tr>
+                            <tr><td><strong>BEHA-04</strong></td><td>1- ضياء الدين محمد عبد ربه 2- ريناد عصام عادل</td><td>أسماء السعيد</td><td>د. هشام عبد الباري</td><td>د. سارة محمود</td></tr>
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob(['\ufeff', wordHtml], { type: 'application/msword;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'توزيع_المحكمين_والطلاب_3_جولات_حسب_التخصص_ISEF.doc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('تم تحميل ملف توزيع المحكمين والطلاب بصيغة Word بنجاح!', 'success');
+        };
+
+        // ==========================================
+        // 4.6 QR CODE & GOOGLE SHEETS LINK MODAL
         // ==========================================
         function getSavedSheetsUrl() {
             const saved = localStorage.getItem(LS_KEYS.SHEETS_URL);
@@ -1316,7 +1530,7 @@
             state.activeJudge = {
                 code: matchedJudge.code,
                 name: matchedJudge.name,
-                specialty: 'لجنة التحكيم',
+                specialty: matchedJudge.specialty || 'لجنة التحكيم',
                 phone: matchedJudge.code,
                 stage: STAGE_KEY
             };
@@ -1343,6 +1557,7 @@
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="py-2 px-3 font-black text-isef-800 text-center" dir="ltr">${j.code}</td>
                     <td class="py-2 px-3 font-bold text-slate-800">${j.name}</td>
+                    <td class="py-2 px-3 text-slate-500 text-[11px]">${j.specialty || ''}</td>
                     <td class="py-2 px-3 text-center">
                         <button type="button" onclick="deleteJudgeFromDirectory(${idx})" class="text-rose-500 hover:text-rose-700 p-1 cursor-pointer" title="حذف">
                             <i class="fas fa-trash"></i>
@@ -1354,9 +1569,9 @@
             const html = `
                 <div class="space-y-4">
                     <form onsubmit="addJudgeToDirectory(event)" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="new-judge-code" required placeholder="الكود (مثل 111)"
-                            class="sm:w-32 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-center uppercase outline-none focus:ring-2 focus:ring-isef-500" dir="ltr">
-                        <input type="text" id="new-judge-name" required placeholder="اسم المحكم بالكامل (مثل: د. محمد أحمد)"
+                        <input type="text" id="new-judge-code" required placeholder="الكود (مثل 132)"
+                            class="sm:w-28 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-center uppercase outline-none focus:ring-2 focus:ring-isef-500" dir="ltr">
+                        <input type="text" id="new-judge-name" required placeholder="اسم المحكم بالكامل"
                             class="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-isef-500">
                         <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
                             <i class="fas fa-plus ml-1"></i> إضافة محكم
@@ -1364,7 +1579,7 @@
                     </form>
 
                     <div class="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 p-3 rounded-xl">
-                        <span class="text-xs font-bold text-purple-900">استيراد أسماء المحكمين من Excel (عمود: الكود | اسم المحكم)</span>
+                        <span class="text-xs font-bold text-purple-900">استيراد أو تصدير كشف أكواد وتخصصات المحكمين (Excel)</span>
                         <div class="flex items-center gap-2">
                             <input type="file" id="judges-excel-input" accept=".xlsx, .xls, .csv" onchange="handleJudgesExcelUpload(event)" class="hidden">
                             <button type="button" onclick="document.getElementById('judges-excel-input').click()" class="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold cursor-pointer">
@@ -1380,9 +1595,10 @@
                         <table class="w-full text-right text-xs">
                             <thead class="bg-slate-100 text-slate-700 font-extrabold sticky top-0">
                                 <tr>
-                                    <th class="py-2.5 px-3 text-center w-24">الكود</th>
+                                    <th class="py-2.5 px-3 text-center w-20">الكود</th>
                                     <th class="py-2.5 px-3">اسم المحكم</th>
-                                    <th class="py-2.5 px-3 text-center w-16">حذف</th>
+                                    <th class="py-2.5 px-3">التخصص / المجال</th>
+                                    <th class="py-2.5 px-3 text-center w-14">حذف</th>
                                 </tr>
                             </thead>
                             <tbody id="judges-dir-tbody">
@@ -1408,7 +1624,7 @@
                 state.judgesDirectory[existingIdx].name = name;
                 showToast(`تم تحديث اسم المحكم للكود ${code}`, 'success');
             } else {
-                state.judgesDirectory.push({ code, name });
+                state.judgesDirectory.push({ code, name, specialty: 'لجنة التحكيم' });
                 showToast(`تم إضافة المحكم ${name} بكود ${code}`, 'success');
             }
             saveToLocalStorage();
@@ -1436,7 +1652,8 @@
                     const imported = rows.map((r, i) => {
                         const code = String(r['الكود'] || r['كود المحكم'] || r['Code'] || (101 + i)).trim().toUpperCase();
                         const name = String(r['اسم المحكم'] || r['الاسم'] || r['Name'] || '').trim();
-                        return { code, name };
+                        const specialty = String(r['التخصص'] || r['Specialty'] || 'لجنة التحكيم').trim();
+                        return { code, name, specialty };
                     }).filter(j => j.name !== '');
 
                     if (imported.length === 0) {
@@ -1460,7 +1677,8 @@
         window.exportJudgesCodesExcel = function() {
             const rows = state.judgesDirectory.map(j => ({
                 'كود الدخول للمحكم': j.code,
-                'اسم المحكم': j.name
+                'اسم المحكم': j.name,
+                'التخصص / المجال المخصص': j.specialty || ''
             }));
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
@@ -1498,7 +1716,7 @@
             const j = state.activeJudge;
             document.getElementById('header-judge-name').textContent = j.name;
             document.getElementById('ws-judge-name').textContent = j.name;
-            document.getElementById('ws-judge-meta').textContent = `كود المحكم: ${j.code || j.phone}`;
+            document.getElementById('ws-judge-meta').textContent = `كود المحكم: ${j.code || j.phone} — ${j.specialty || 'لجنة التحكيم'}`;
 
             const stageProjects = getProjectsByStage(STAGE_KEY);
             document.getElementById('stage-projects-total').textContent = `${stageProjects.length} مشروع`;
@@ -1679,7 +1897,7 @@
                 projectCategory: project.category || '',
                 judgeCode: j.code || cleanCode,
                 judgeName: j.name,
-                judgeSpecialty: 'لجنة التحكيم',
+                judgeSpecialty: j.specialty || 'لجنة التحكيم',
                 judgePhone: j.code || cleanCode,
                 scores: { c1, c2, c3, c4, c5 },
                 totalScore: total,
@@ -1917,23 +2135,6 @@
             reader.readAsArrayBuffer(file);
         };
 
-        window.downloadTemplateExcel = function() {
-            const currentProjects = getProjectsByStage(STAGE_KEY);
-            const templateData = currentProjects.map(p => ({
-                'الكود': p.code,
-                'اسم المشروع': p.title,
-                'الفئة العلمية': p.category,
-                'الطلاب': p.students,
-                'المدرسة': p.school,
-                'الإدارة التعليمية': p.administration || ''
-            }));
-            const ws = XLSX.utils.json_to_sheet(templateData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'المشاريع_75');
-            XLSX.writeFile(wb, `نموذج_مشاريع_معرض_شرق_القاهرة_ISEF.xlsx`);
-            showToast('تم تحميل شيت المشاريع الـ 75 بنجاح', 'info');
-        };
-
         window.exportResultsToExcel = function() {
             const stageProjects = getProjectsByStage(STAGE_KEY);
             const stageEvals = state.evaluations;
@@ -1968,7 +2169,7 @@
                     'الفئة العلمية': proj.category || '',
                     'اسم المحكم': ev.judgeName,
                     'تخصص المحكم': ev.judgeSpecialty,
-                    'موبايل المحكم': ev.judgePhone,
+                    'كود المحكم': ev.judgeCode || ev.judgePhone,
                     'سؤال البحث (10)': ev.scores.c1,
                     'التصميم والمنهجية (15)': ev.scores.c2,
                     'التنفيذ والبيانات (20)': ev.scores.c3,
